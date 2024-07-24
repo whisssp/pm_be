@@ -1,0 +1,18 @@
+host: localhost
+
+server:
+  port: 8080
+
+database:
+  port: 26257
+  name: defaultdb
+  domain: vital-fawn-7347.6xw.aws-ap-southeast-1.cockroachlabs.cloud
+  password: _oFbv9Yh03Ads4QzUYtiZg
+  username: whisper
+  url: postgresql://whisper:_oFbv9Yh03Ads4QzUYtiZg@vital-fawn-7347.6xw.aws-ap-southeast-1.cockroachlabs.cloud:26257/postgres?sslmode=verify-full
+
+redis:
+  port: 6379
+  name: 0
+  password:
+  expireTime: 600000000000

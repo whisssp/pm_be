@@ -1,0 +1,481 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This is a sample server celler server.",
+        "title": "Product Management API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "paths": {
+        "/products": {
+            "get": {
+                "description": "Get all products which is not deleted",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Get all products",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "the limit perpage",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "the page nummber",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "categoryId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "createdAtFrom",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "createdAtTo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "name": "deleted",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "description",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "keyword",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "name": "priceFrom",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "name": "priceTo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "updatedAtFrom",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "updatedAtTo",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "create a new product",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Create a product",
+                "parameters": [
+                    {
+                        "description": "create product wth create product request",
+                        "name": "CreateProductRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/payload.CreateProductRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/:id": {
+            "get": {
+                "description": "Get product by id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Get product by id",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "the id of the product to return",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update product by id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Update product by id",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "the id of product to update",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete product by id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Delete product by id",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "the id of product to delete",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/search": {
+            "get": {
+                "description": "Get all products which is not deleted",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Get all products",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "the limit perpage",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "the page nummber",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "categoryId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "createdAtFrom",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "createdAtTo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "name": "deleted",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "description",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "keyword",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "name": "priceFrom",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "name": "priceTo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "updatedAtFrom",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "updatedAtTo",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "payload.AppError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "payload.AppResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "payload.CreateProductRequest": {
+            "type": "object",
+            "required": [
+                "categoryId",
+                "name",
+                "price"
+            ],
+            "properties": {
+                "categoryId": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "imagePath": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "stock": {
+                    "type": "integer",
+                    "minimum": 0
+                }
+            }
+        }
+    }
+}

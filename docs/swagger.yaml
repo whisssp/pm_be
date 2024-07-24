@@ -1,0 +1,311 @@
+definitions:
+  payload.AppError:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
+  payload.AppResponse:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
+  payload.CreateProductRequest:
+    properties:
+      categoryId:
+        type: integer
+      description:
+        type: string
+      imagePath:
+        type: string
+      name:
+        type: string
+      price:
+        minimum: 0
+        type: number
+      stock:
+        minimum: 0
+        type: integer
+    required:
+    - categoryId
+    - name
+    - price
+    type: object
+info:
+  contact: {}
+  description: This is a sample server celler server.
+  title: Product Management API
+  version: "1.0"
+paths:
+  /products:
+    get:
+      consumes:
+      - application/json
+      description: Get all products which is not deleted
+      parameters:
+      - description: the limit perpage
+        in: query
+        name: limit
+        type: integer
+      - description: the page nummber
+        in: query
+        name: page
+        type: integer
+      - in: query
+        name: categoryId
+        type: integer
+      - in: query
+        name: createdAtFrom
+        type: string
+      - in: query
+        name: createdAtTo
+        type: string
+      - in: query
+        name: deleted
+        type: boolean
+      - in: query
+        name: description
+        type: string
+      - in: query
+        name: id
+        type: integer
+      - in: query
+        name: keyword
+        type: string
+      - in: query
+        name: name
+        type: string
+      - in: query
+        name: priceFrom
+        type: number
+      - in: query
+        name: priceTo
+        type: number
+      - in: query
+        name: updatedAtFrom
+        type: string
+      - in: query
+        name: updatedAtTo
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Get all products
+      tags:
+      - Product
+    post:
+      consumes:
+      - application/json
+      description: create a new product
+      parameters:
+      - description: create product wth create product request
+        in: body
+        name: CreateProductRequest
+        required: true
+        schema:
+          $ref: '#/definitions/payload.CreateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Create a product
+      tags:
+      - Product
+  /products/:id:
+    delete:
+      consumes:
+      - application/json
+      description: Delete product by id
+      parameters:
+      - description: the id of product to delete
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Delete product by id
+      tags:
+      - Product
+    get:
+      consumes:
+      - application/json
+      description: Get product by id
+      parameters:
+      - description: the id of the product to return
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Get product by id
+      tags:
+      - Product
+    put:
+      consumes:
+      - application/json
+      description: Update product by id
+      parameters:
+      - description: the id of product to update
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Update product by id
+      tags:
+      - Product
+  /products/search:
+    get:
+      consumes:
+      - application/json
+      description: Get all products which is not deleted
+      parameters:
+      - description: the limit perpage
+        in: query
+        name: limit
+        type: integer
+      - description: the page nummber
+        in: query
+        name: page
+        type: integer
+      - in: query
+        name: categoryId
+        type: integer
+      - in: query
+        name: createdAtFrom
+        type: string
+      - in: query
+        name: createdAtTo
+        type: string
+      - in: query
+        name: deleted
+        type: boolean
+      - in: query
+        name: description
+        type: string
+      - in: query
+        name: id
+        type: integer
+      - in: query
+        name: keyword
+        type: string
+      - in: query
+        name: name
+        type: string
+      - in: query
+        name: priceFrom
+        type: number
+      - in: query
+        name: priceTo
+        type: number
+      - in: query
+        name: updatedAtFrom
+        type: string
+      - in: query
+        name: updatedAtTo
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Get all products
+      tags:
+      - Product
+swagger: "2.0"
