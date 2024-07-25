@@ -1,4 +1,4 @@
-package payload
+package entity
 
 type Pagination struct {
 	Limit      int    `form:"limit"`

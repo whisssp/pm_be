@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"pm/application"
+	"pm/domain/entity"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/persistences/base"
 	"strconv"
@@ -65,13 +66,13 @@ func (handler *ProductHandler) HandleCreateProduct(c *gin.Context) {
 //	@Router			/products 				[get]
 //	@Router			/products/search 				[get]
 func (handler *ProductHandler) HandleGetAllProducts(c *gin.Context) {
-	var filter payload.ProductFilter
+	var filter entity.ProductFilter
 	if err := c.ShouldBindQuery(&filter); err != nil {
 		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
 		return
 	}
 
-	pagination := payload.InitPaginate()
+	pagination := entity.InitPaginate()
 	if err := c.ShouldBindQuery(&pagination); err != nil {
 		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
 		return

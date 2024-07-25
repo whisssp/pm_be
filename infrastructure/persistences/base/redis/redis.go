@@ -21,7 +21,7 @@ func NewRedisClient(appConfig *config.AppConfig) (*RedisCache, error) {
 	ctx := context.Background()
 	exp, _ := time.ParseDuration(redisConfig.ExpirationTime)
 	client := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%s", appConfig.Host, redisConfig.Port),
+		Addr:     fmt.Sprintf("%s:%s", appConfig.Server.Host, redisConfig.Port),
 		DB:       dbInt,
 		Password: redisConfig.Password,
 	})

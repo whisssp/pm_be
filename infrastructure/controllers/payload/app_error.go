@@ -62,3 +62,15 @@ func ErrDB(err error) *AppError {
 func ErrParamRequired(err error) *AppError {
 	return NewCustomError(http.StatusBadRequest, err, fmt.Sprintf("missing path parameter. %s", err.Error()), fmt.Sprintf("ErrParamRequired"))
 }
+
+func ErrUploadFile(err error) *AppError {
+	return NewCustomError(http.StatusBadRequest, err, fmt.Sprintf("missing path parameter. %s", err.Error()), fmt.Sprintf("ErrUploadFile"))
+}
+
+func ErrDetectFileType(err error) *AppError {
+	return NewCustomError(http.StatusInternalServerError, err, err.Error(), "ErrDetectFileType")
+}
+
+func ErrResetFilePointer(err error) *AppError {
+	return NewCustomError(http.StatusInternalServerError, err, err.Error(), "ErrResetFilePointer")
+}

@@ -4,22 +4,31 @@ import (
 	"context"
 	"fmt"
 	"github.com/redis/go-redis/v9"
+	storage_go "github.com/supabase-community/storage-go"
 	"gorm.io/gorm"
 	"pm/infrastructure/config"
 	db2 "pm/infrastructure/persistences/base/db"
 	rd2 "pm/infrastructure/persistences/base/redis"
+	"pm/infrastructure/persistences/base/supabase"
 	"time"
 )
 
 type Persistence struct {
 	GormDB              *gorm.DB
 	RedisDB             *redis.Client
+	SupabaseStorage     *storage_go.Client
 	Ctx                 context.Context
 	RedisExpirationTime time.Duration
 }
 
 func InitPersistence(appConfig *config.AppConfig) *Persistence {
-	var persistence Persistence
+	persistence := &Persistence{
+		GormDB:              nil,
+		RedisDB:             nil,
+		SupabaseStorage:     nil,
+		Ctx:                 context.Background(),
+		RedisExpirationTime: 10 * time.Minute,
+	}
 	gormDBConfig := appConfig.DatabaseConfig
 	gormDB, err := db2.SetupDatabase(db2.GetDSN(gormDBConfig.Username, gormDBConfig.Password, gormDBConfig.Domain, gormDBConfig.Port, gormDBConfig.DBName))
 	if err != nil {
@@ -31,12 +40,13 @@ func InitPersistence(appConfig *config.AppConfig) *Persistence {
 	if err != nil {
 		fmt.Println("error connecting to redis", err)
 	}
-	persistence.RedisDB = nil
+	persistence.RedisDB = redisClient.Client
 
-	return &Persistence{
-		GormDB:              gormDB,
-		RedisDB:             redisClient.Client,
-		Ctx:                 redisClient.Ctx,
-		RedisExpirationTime: redisClient.ExpirationTime,
+	supabaseStorage := supabase.NewSupabaseStorage(appConfig)
+	if supabaseStorage == nil {
+		fmt.Println("error connecting to redis", err)
 	}
+	persistence.SupabaseStorage = supabaseStorage.StorageClient
+
+	return persistence
 }

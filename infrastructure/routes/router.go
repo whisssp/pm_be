@@ -29,6 +29,7 @@ func InitServer(port string, persistence *base.Persistence) *Server {
 func (s *Server) Run() {
 	router := gin.Default()
 	InitHelpers(s.Persistence)
+
 	s.SetUpRoutes(router)
 
 	c := cron.New()
@@ -52,9 +53,11 @@ func (s *Server) Run() {
 func (s *Server) SetUpRoutes(router *gin.Engine) {
 	productHandler := handlers.NewProductHandler(s.Persistence)
 	categoryHandler := handlers.NewCategoryHandler(s.Persistence)
+	fileHandler := handlers.NewFileHandler(s.Persistence)
 
 	productRoute := NewProductRoutes(productHandler)
 	categoryRoute := NewCategoryRoutes(categoryHandler)
+	fileRoute := NewFileRoutes(fileHandler)
 
 	v1 := router.Group("/api/v1")
 
@@ -62,8 +65,10 @@ func (s *Server) SetUpRoutes(router *gin.Engine) {
 
 	productRoute.RegisterRoutes(v1)
 	categoryRoute.RegisterRoutes(v1)
+	fileRoute.RegisterRoutes(v1)
 }
 
 func InitHelpers(p *base.Persistence) {
 	utils.InitCacheHelper(p)
+	utils.InitSupabaseStorage(p)
 }

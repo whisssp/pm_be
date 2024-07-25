@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 	"net/http"
 	"pm/application"
+	"pm/domain/entity"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/persistences/base"
 	"strconv"
@@ -39,8 +40,8 @@ func (h CategoryHandler) HandleCreateCategory(c *gin.Context) {
 }
 
 func (h CategoryHandler) HandleGetAllCategories(c *gin.Context) {
-	var categoryFilter payload.CategoryFilter
-	var pagination payload.Pagination
+	var categoryFilter entity.CategoryFilter
+	var pagination entity.Pagination
 
 	if err := c.ShouldBindQuery(&categoryFilter); err != nil {
 		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))

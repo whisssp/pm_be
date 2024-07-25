@@ -14,7 +14,7 @@ func CategoryToCategoryResponse(e *entity.Category) payload.CategoryResponse {
 	}
 }
 
-func CategoriesToListCategoriesResponse(listEntities []entity.Category, pagination *payload.Pagination) payload.ListCategoriesResponse {
+func CategoriesToListCategoriesResponse(listEntities []entity.Category, pagination *entity.Pagination) payload.ListCategoriesResponse {
 	listCateResponse := make([]payload.CategoryResponse, 0)
 	for _, c := range listEntities {
 		cateResponse := CategoryToCategoryResponse(&c)

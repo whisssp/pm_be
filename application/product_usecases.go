@@ -17,7 +17,7 @@ const redisHashKey = "products"
 
 type ProductUsecase interface {
 	CreateProduct(reqPayload *payload.CreateProductRequest) error
-	GetAllProducts(filter *payload.ProductFilter, pagination *payload.Pagination) (*payload.ListProductResponse, error)
+	GetAllProducts(filter *entity.ProductFilter, pagination *entity.Pagination) (*payload.ListProductResponse, error)
 	GetProductByID(id int64) (*payload.ProductResponse, error)
 	DeleteProductByID(id int64) error
 	UpdateProductByID(id int64, updatePayload *payload.UpdateProductRequest) (*payload.ProductResponse, error)
@@ -60,7 +60,7 @@ func (p productUsecase) CreateProduct(reqPayload *payload.CreateProductRequest) 
 	return nil
 }
 
-func (p productUsecase) GetAllProducts(filter *payload.ProductFilter, pagination *payload.Pagination) (*payload.ListProductResponse, error) {
+func (p productUsecase) GetAllProducts(filter *entity.ProductFilter, pagination *entity.Pagination) (*payload.ListProductResponse, error) {
 	var listProdResponse payload.ListProductResponse
 	productRepo := products.NewProductRepository(p.p)
 	prods := make([]entity.Product, 0)
@@ -72,7 +72,7 @@ func (p productUsecase) GetAllProducts(filter *payload.ProductFilter, pagination
 			prods = prodsMapToArray(productsMap)
 			_prods := prods[:pagination.GetOffset()-1]
 			_prods = _prods[:pagination.GetLimit()-1]
-			listProdResponse = mapper.ProdsToListProdsResponse(_prods, &payload.Pagination{
+			listProdResponse = mapper.ProdsToListProdsResponse(_prods, &entity.Pagination{
 				Limit:      pagination.GetLimit(),
 				Page:       pagination.GetPage(),
 				Sort:       "",

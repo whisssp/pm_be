@@ -45,7 +45,7 @@ func (prodRepo *ProductRepository) GetProductByID(id int64) (*entity.Product, er
 	return &product, nil
 }
 
-func (prodRepo *ProductRepository) GetAllProducts(filter *payload.ProductFilter, pagination *payload.Pagination) ([]entity.Product, error) {
+func (prodRepo *ProductRepository) GetAllProducts(filter *entity.ProductFilter, pagination *entity.Pagination) ([]entity.Product, error) {
 	var totalRows int64
 	products := make([]entity.Product, 0)
 	db := prodRepo.p.GormDB
@@ -76,13 +76,13 @@ func (prodRepo *ProductRepository) DeleteProduct(product *entity.Product) error 
 	return nil
 }
 
-func paginate(pagination *payload.Pagination) func(db *gorm.DB) *gorm.DB {
+func paginate(pagination *entity.Pagination) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Offset(pagination.GetOffset()).Limit(pagination.GetLimit()).Order(pagination.GetSort())
 	}
 }
 
-func applyFilter(f *payload.ProductFilter) func(db *gorm.DB) *gorm.DB {
+func applyFilter(f *entity.ProductFilter) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Scopes(
 			applyKeywordFilter(f, db),
@@ -98,7 +98,7 @@ func applyFilter(f *payload.ProductFilter) func(db *gorm.DB) *gorm.DB {
 	}
 }
 
-func applyKeywordFilter(f *payload.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
+func applyKeywordFilter(f *entity.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		if f.Keyword != "" {
 			db = db.Where("name LIKE ? OR description LIKE ?", "%"+f.Keyword+"%", "%"+f.Keyword+"%")
@@ -107,7 +107,7 @@ func applyKeywordFilter(f *payload.ProductFilter, db *gorm.DB) func(db *gorm.DB)
 	}
 }
 
-func applyIDFilter(f *payload.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
+func applyIDFilter(f *entity.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		if f.ID != 0 {
 			db = db.Where("id = ?", f.ID)
@@ -116,7 +116,7 @@ func applyIDFilter(f *payload.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gor
 	}
 }
 
-func applyNameFilter(f *payload.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
+func applyNameFilter(f *entity.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		if f.Name != "" {
 			db = db.Where("name LIKE ?", "%"+f.Name+"%")
@@ -125,7 +125,7 @@ func applyNameFilter(f *payload.ProductFilter, db *gorm.DB) func(db *gorm.DB) *g
 	}
 }
 
-func applyPriceFilter(f *payload.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
+func applyPriceFilter(f *entity.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		if f.PriceFrom != 0 {
 			db = db.Where("price >= ?", f.PriceFrom)
@@ -137,7 +137,7 @@ func applyPriceFilter(f *payload.ProductFilter, db *gorm.DB) func(db *gorm.DB) *
 	}
 }
 
-func applyDescriptionFilter(f *payload.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
+func applyDescriptionFilter(f *entity.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		if f.Description != "" {
 			db = db.Where("description LIKE ?", "%"+f.Description+"%")
@@ -146,7 +146,7 @@ func applyDescriptionFilter(f *payload.ProductFilter, db *gorm.DB) func(db *gorm
 	}
 }
 
-func applyCategoryIDFilter(f *payload.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
+func applyCategoryIDFilter(f *entity.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		if f.CategoryID != 0 {
 			db = db.Where("category_id = ?", f.CategoryID)
@@ -155,7 +155,7 @@ func applyCategoryIDFilter(f *payload.ProductFilter, db *gorm.DB) func(db *gorm.
 	}
 }
 
-func applyCreatedAtFilter(f *payload.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
+func applyCreatedAtFilter(f *entity.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		if f.CreatedAtFrom != nil {
 			db = db.Where("created_at >= ?", *f.CreatedAtFrom)
@@ -167,7 +167,7 @@ func applyCreatedAtFilter(f *payload.ProductFilter, db *gorm.DB) func(db *gorm.D
 	}
 }
 
-func applyUpdatedAtFilter(f *payload.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
+func applyUpdatedAtFilter(f *entity.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		if f.UpdatedAtFrom != nil {
 			db = db.Where("updated_at >= ?", *f.UpdatedAtFrom)
@@ -179,7 +179,7 @@ func applyUpdatedAtFilter(f *payload.ProductFilter, db *gorm.DB) func(db *gorm.D
 	}
 }
 
-func applyDeletedFilter(f *payload.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
+func applyDeletedFilter(f *entity.ProductFilter, db *gorm.DB) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		if f.Deleted {
 			db = db.Where("deleted = ?", f.Deleted)
