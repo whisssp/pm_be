@@ -21,3 +21,18 @@ type ListProductResponse struct {
 	TotalElements int64             `json:"totalElements"`
 	TotalPages    int               `json:"totalPages"`
 }
+
+type CategoryResponse struct {
+	ID        uint      `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"UpdatedAt"`
+}
+
+type ListCategoriesResponse struct {
+	Categories    []CategoryResponse `json:"categories"`
+	Limit         int                `json:"limit"`
+	Page          int                `json:"page"`
+	TotalElements int64              `json:"totalElements"`
+	TotalPages    int                `json:"totalPages"`
+}

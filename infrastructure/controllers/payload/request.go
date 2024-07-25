@@ -18,3 +18,12 @@ type UpdateProductRequest struct {
 	Stock       int64   `json:"stock" validate:"gte=0"`
 	Image       string  `json:"imagePath"`
 }
+
+type CreateCategoryRequest struct {
+	Name string `json:"name" validate:"required"`
+}
+
+type UpdateCategoryRequest struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}

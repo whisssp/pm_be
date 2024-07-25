@@ -6,16 +6,19 @@ import (
 	"net/http"
 	"pm/application"
 	"pm/infrastructure/controllers/payload"
+	"pm/infrastructure/persistences/base"
 	"strconv"
 	"strings"
 )
 
 type ProductHandler struct {
-	prodUsecase *application.ProductUsecase
+	p       *base.Persistence
+	usecase application.ProductUsecase
 }
 
-func NewProductHandler(prodUsecase *application.ProductUsecase) *ProductHandler {
-	return &ProductHandler{prodUsecase}
+func NewProductHandler(p *base.Persistence) *ProductHandler {
+	usecase := application.NewProductUsecase(p)
+	return &ProductHandler{p, usecase}
 }
 
 // CreateProduct godoc
@@ -38,7 +41,7 @@ func (handler *ProductHandler) HandleCreateProduct(c *gin.Context) {
 		return
 	}
 
-	if err := handler.prodUsecase.CreateProduct(&createProdReq); err != nil {
+	if err := handler.usecase.CreateProduct(&createProdReq); err != nil {
 		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
 		return
 	}
@@ -69,12 +72,12 @@ func (handler *ProductHandler) HandleGetAllProducts(c *gin.Context) {
 	}
 
 	pagination := payload.InitPaginate()
-	if err := c.ShouldBindQuery(pagination); err != nil {
+	if err := c.ShouldBindQuery(&pagination); err != nil {
 		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
 		return
 	}
 
-	prods, err := handler.prodUsecase.GetAllProducts(&filter, pagination)
+	prods, err := handler.usecase.GetAllProducts(&filter, pagination)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
 		return
@@ -102,7 +105,7 @@ func (handler *ProductHandler) HandleGetProductByID(c *gin.Context) {
 		return
 	}
 
-	prod, err := handler.prodUsecase.GetProductByID(id)
+	prod, err := handler.usecase.GetProductByID(id)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, payload.ErrEntityNotFound("products", err))
@@ -134,7 +137,7 @@ func (handler *ProductHandler) HandleDeleteProductByID(c *gin.Context) {
 		return
 	}
 
-	err := handler.prodUsecase.DeleteProductByID(id)
+	err := handler.usecase.DeleteProductByID(id)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, payload.ErrEntityNotFound("products", err))
@@ -172,7 +175,7 @@ func (handler *ProductHandler) HandleUpdateProductByID(c *gin.Context) {
 		return
 	}
 
-	prodUpdated, err := handler.prodUsecase.UpdateProductByID(id, &updateProductReq)
+	prodUpdated, err := handler.usecase.UpdateProductByID(id, &updateProductReq)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, payload.ErrEntityNotFound("products", err))
