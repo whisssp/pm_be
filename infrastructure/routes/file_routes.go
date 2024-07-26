@@ -14,8 +14,8 @@ func NewFileRoutes(handler *handlers.FileHandler) *FileRoutes {
 }
 
 func (router *FileRoutes) RegisterRoutes(routerGroup *gin.RouterGroup) {
-	category := routerGroup.Group("/files")
+	files := routerGroup.Group("/files")
 	{
-		category.POST("/upload/images", router.handler.HandleUploadImage)
+		files.POST("/upload/images", router.handler.HandleUploadImage)
 	}
 }

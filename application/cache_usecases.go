@@ -27,7 +27,7 @@ func (c cacheUsecase) LoadProductToRedis() {
 	if err != nil {
 		fmt.Println("\nLoadProduct/error getting products from db", err)
 	}
-	err = utils.RedisSetHashGenericKeySlice(redisProductKey, prods, entity.GetID, c.p.RedisExpirationTime)
+	err = utils.RedisSetHashGenericKeySlice(redisProductKey, prods, entity.GetID, c.p.Redis.KeyExpirationTime)
 	if err != nil {
 		fmt.Println("error adding data", err)
 		return

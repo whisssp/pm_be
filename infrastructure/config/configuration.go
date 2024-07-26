@@ -4,6 +4,7 @@ import (
 	"github.com/joho/godotenv"
 	"os"
 	"strconv"
+	"time"
 )
 
 //type AppConfig struct {
@@ -47,8 +48,8 @@ type DatabaseConfig struct {
 type RedisConfig struct {
 	Port           string
 	Password       string
-	DBName         string
-	ExpirationTime string
+	DBName         int64
+	ExpirationTime time.Duration
 }
 
 type SupabaseStorage struct {
@@ -57,11 +58,17 @@ type SupabaseStorage struct {
 	Header string
 }
 
+type JwtConfig struct {
+	SecretKey       string
+	TokenExpiration time.Duration
+}
+
 type AppConfig struct {
-	DatabaseConfig  DatabaseConfig
-	RedisConfig     RedisConfig
-	Server          Server
-	SupabaseStorage SupabaseStorage
+	DatabaseConfig        DatabaseConfig
+	RedisConfig           RedisConfig
+	Server                Server
+	SupabaseStorageConfig SupabaseStorage
+	JwtConfig             JwtConfig
 }
 
 func LoadConfig() (*AppConfig, error) {
@@ -70,6 +77,10 @@ func LoadConfig() (*AppConfig, error) {
 		return nil, err
 	}
 	config := &AppConfig{
+		Server: Server{
+			Port: getEnv("PORT", "8080"),
+			Host: getEnv("HOST", "localhost"),
+		},
 		DatabaseConfig: DatabaseConfig{
 			Port:     getEnv("DB_PORT", "5432"),
 			DBName:   getEnv("DB_NAME", "postgres"),
@@ -81,17 +92,17 @@ func LoadConfig() (*AppConfig, error) {
 		RedisConfig: RedisConfig{
 			Port:           getEnv("REDIS_PORT", "6379"),
 			Password:       getEnv("REDIS_PASSWORD", "6379"),
-			DBName:         getEnv("REDIS_DB", "0"),
-			ExpirationTime: getEnv("REDIS_KEY_EXPIRATION", "600000000000"),
+			DBName:         getEnvAsInt("REDIS_DB", 0),
+			ExpirationTime: GetEnvAsDuration("REDIS_KEY_EXPIRATION", 10*time.Minute),
 		},
-		Server: Server{
-			Port: getEnv("PORT", "8080"),
-			Host: getEnv("HOST", "localhost"),
-		},
-		SupabaseStorage: SupabaseStorage{
+		SupabaseStorageConfig: SupabaseStorage{
 			Url:    getEnv("SUPABASE_STORAGE_URL", "https://drqbnazyxxjvqapzcmkz.supabase.co/storage/v1"),
 			Key:    getEnv("SUPABASE_STORAGE_KEY", "Mat key"),
 			Header: "",
+		},
+		JwtConfig: JwtConfig{
+			SecretKey:       getEnv("JWT_SECRECT_KEY", "timthujwtkeyodaudichunobaymattieuroicailmeeeeeeeeeeeeeeeeeee"),
+			TokenExpiration: GetEnvAsDuration("JWT_TOKEN_EXPIRATION", 10*time.Minute),
 		},
 	}
 
@@ -121,6 +132,17 @@ func getEnv(key, fallback string) string {
 func getEnvAsInt(key string, fallback int64) int64 {
 	if value, ok := os.LookupEnv(key); ok {
 		i, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return fallback
+		}
+		return i
+	}
+	return fallback
+}
+
+func GetEnvAsDuration(key string, fallback time.Duration) time.Duration {
+	if value, ok := os.LookupEnv(key); ok {
+		i, err := time.ParseDuration(value)
 		if err != nil {
 			return fallback
 		}

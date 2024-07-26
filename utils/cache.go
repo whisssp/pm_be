@@ -18,14 +18,14 @@ var ctx context.Context = nil
 var expirationTime time.Duration = time.Minute
 
 func InitCacheHelper(p *base.Persistence) {
-	if p.RedisDB == nil {
+	if p.Redis.RedisDB == nil {
 		fmt.Println("error cannot get redisClient from persistence")
 		return
 	}
-	rd2Repo = cache.NewRedisCacheRepository(p.RedisDB, p.Ctx)
-	rd2Driver = p.RedisDB
+	rd2Repo = cache.NewRedisCacheRepository(p.Redis.RedisDB, p.Ctx)
+	rd2Driver = p.Redis.RedisDB
 	ctx = p.Ctx
-	expirationTime = p.RedisExpirationTime
+	expirationTime = p.Redis.KeyExpirationTime
 }
 
 func GetAllHashGeneric[M any](key string, src *map[string]M) {

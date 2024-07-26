@@ -14,7 +14,7 @@ import (
 
 type CategoryUsecase interface {
 	CreateCategory(reqPayload *payload.CreateCategoryRequest) error
-	GetAllCategories(filter *entity.CategoryFilter, pagination *entity.Pagination) (*payload.ListCategoriesResponse, error)
+	GetAllCategories(filter *entity.CategoryFilter, pagination *entity.Pagination) (*payload.ListCategoryResponses, error)
 	GetCategoryByID(id int64) (*payload.CategoryResponse, error)
 	DeleteCategoryByID(id int64) error
 	UpdateCategoryByID(id int64, updatePayload payload.UpdateCategoryRequest) (*payload.CategoryResponse, error)
@@ -87,7 +87,7 @@ func (categoryUsecase categoryUsecase) CreateCategory(reqPayload *payload.Create
 	return nil
 }
 
-func (categoryUsecase categoryUsecase) GetAllCategories(filter *entity.CategoryFilter, pagination *entity.Pagination) (*payload.ListCategoriesResponse, error) {
+func (categoryUsecase categoryUsecase) GetAllCategories(filter *entity.CategoryFilter, pagination *entity.Pagination) (*payload.ListCategoryResponses, error) {
 	cateRepo := categories.NewCategoryRepository(categoryUsecase.p)
 	cates, err := cateRepo.GetAllCategories(filter, pagination)
 	if err != nil {

@@ -17,7 +17,7 @@ const redisHashKey = "products"
 
 type ProductUsecase interface {
 	CreateProduct(reqPayload *payload.CreateProductRequest) error
-	GetAllProducts(filter *entity.ProductFilter, pagination *entity.Pagination) (*payload.ListProductResponse, error)
+	GetAllProducts(filter *entity.ProductFilter, pagination *entity.Pagination) (*payload.ListProductResponses, error)
 	GetProductByID(id int64) (*payload.ProductResponse, error)
 	DeleteProductByID(id int64) error
 	UpdateProductByID(id int64, updatePayload *payload.UpdateProductRequest) (*payload.ProductResponse, error)
@@ -44,7 +44,7 @@ func (p productUsecase) CreateProduct(reqPayload *payload.CreateProductRequest) 
 		return payload.ErrDB(err)
 	}
 
-	err = utils.RedisSetHashGenericKey(redisHashKey, strconv.FormatInt(int64(prod.ID), 10), prod, p.p.RedisExpirationTime)
+	err = utils.RedisSetHashGenericKey(redisHashKey, strconv.FormatInt(int64(prod.ID), 10), prod, p.p.Redis.KeyExpirationTime)
 	if err != nil {
 		if !strings.Contains(err.Error(), "not found") {
 			fmt.Println("error adding product to redis", err)
@@ -52,7 +52,7 @@ func (p productUsecase) CreateProduct(reqPayload *payload.CreateProductRequest) 
 			if err != nil {
 				fmt.Println("\nerror getting product from db", err)
 			}
-			err = utils.RedisSetHashGenericKeySlice(redisProductKey, prods, entity.GetID, p.p.RedisExpirationTime)
+			err = utils.RedisSetHashGenericKeySlice(redisProductKey, prods, entity.GetID, p.p.Redis.KeyExpirationTime)
 		}
 
 		fmt.Println("got error on redis", err)
@@ -60,8 +60,8 @@ func (p productUsecase) CreateProduct(reqPayload *payload.CreateProductRequest) 
 	return nil
 }
 
-func (p productUsecase) GetAllProducts(filter *entity.ProductFilter, pagination *entity.Pagination) (*payload.ListProductResponse, error) {
-	var listProdResponse payload.ListProductResponse
+func (p productUsecase) GetAllProducts(filter *entity.ProductFilter, pagination *entity.Pagination) (*payload.ListProductResponses, error) {
+	var listProdResponse payload.ListProductResponses
 	productRepo := products.NewProductRepository(p.p)
 	prods := make([]entity.Product, 0)
 	if filter.IsNil() == true {
@@ -142,7 +142,7 @@ func (p productUsecase) UpdateProductByID(id int64, updatePayload *payload.Updat
 		return nil, err
 	}
 
-	err = utils.RedisSetHashGenericKey(redisHashKey, strconv.FormatInt(int64(prod.ID), 10), prod, p.p.RedisExpirationTime)
+	err = utils.RedisSetHashGenericKey(redisHashKey, strconv.FormatInt(int64(prod.ID), 10), prod, p.p.Redis.KeyExpirationTime)
 	if err != nil {
 		fmt.Printf("error updating product: ID: %v - error: %v", id, err)
 	}

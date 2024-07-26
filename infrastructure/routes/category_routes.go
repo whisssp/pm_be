@@ -14,13 +14,13 @@ func NewCategoryRoutes(handler *handlers.CategoryHandler) *CategoryRoutes {
 }
 
 func (router *CategoryRoutes) RegisterRoutes(routerGroup *gin.RouterGroup) {
-	category := routerGroup.Group("/categories")
+	categories := routerGroup.Group("/categories")
 	{
-		category.POST("", router.handler.HandleCreateCategory)
+		categories.POST("", router.handler.HandleCreateCategory)
 		//categories.GET("/search", router.handler.HandleGetAllCategories)
-		category.GET("", router.handler.HandleGetAllCategories)
-		category.GET("/:id", router.handler.HandleGetCategoryByID)
-		category.DELETE("/:id", router.handler.HandleDeleteCategoryByID)
-		category.PUT("/:id", router.handler.HandleUpdateCategoryByID)
+		categories.GET("", router.handler.HandleGetAllCategories)
+		categories.GET("/:id", router.handler.HandleGetCategoryByID)
+		categories.DELETE("/:id", router.handler.HandleDeleteCategoryByID)
+		categories.PUT("/:id", router.handler.HandleUpdateCategoryByID)
 	}
 }

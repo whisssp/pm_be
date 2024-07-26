@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"pm/infrastructure/controllers/handlers"
+	"pm/infrastructure/controllers/middleware"
 )
 
 type ProductRoutes struct {
@@ -14,7 +15,7 @@ func NewProductRoutes(handler *handlers.ProductHandler) *ProductRoutes {
 }
 
 func (router *ProductRoutes) RegisterRoutes(routerGroup *gin.RouterGroup) {
-	products := routerGroup.Group("/products")
+	products := routerGroup.Group("/products").Use(middleware.AuthMiddleware())
 	{
 		products.POST("", router.handler.HandleCreateProduct)
 		products.GET("/search", router.handler.HandleGetAllProducts)

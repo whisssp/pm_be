@@ -2,6 +2,13 @@ package payload
 
 import "time"
 
+type PaginationResponse struct {
+	Limit         int   `json:"limit"`
+	Page          int   `json:"page"`
+	TotalElements int64 `json:"totalElements"`
+	TotalPages    int   `json:"totalPages"`
+}
+
 type ProductResponse struct {
 	ID          uint      `json:"id"`
 	Name        string    `json:"name"`
@@ -14,12 +21,9 @@ type ProductResponse struct {
 	UpdatedAt   time.Time `json:"UpdatedAt"`
 }
 
-type ListProductResponse struct {
-	Products      []ProductResponse `json:"products"`
-	Limit         int               `json:"limit"`
-	Page          int               `json:"page"`
-	TotalElements int64             `json:"totalElements"`
-	TotalPages    int               `json:"totalPages"`
+type ListProductResponses struct {
+	Products []ProductResponse `json:"products"`
+	PaginationResponse
 }
 
 type CategoryResponse struct {
@@ -29,10 +33,26 @@ type CategoryResponse struct {
 	UpdatedAt time.Time `json:"UpdatedAt"`
 }
 
-type ListCategoriesResponse struct {
-	Categories    []CategoryResponse `json:"categories"`
-	Limit         int                `json:"limit"`
-	Page          int                `json:"page"`
-	TotalElements int64              `json:"totalElements"`
-	TotalPages    int                `json:"totalPages"`
+type ListCategoryResponses struct {
+	Categories []CategoryResponse `json:"categories"`
+	PaginationResponse
+}
+
+type UserResponse struct {
+	ID        uint      `json:"id"`
+	Name      string    `json:"name"`
+	Phone     string    `json:"phone"`
+	Password  string    `json:"password"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"UpdatedAt"`
+}
+
+type ListUserResponses struct {
+	Users []UserResponse `json:"users"`
+	PaginationResponse
+}
+
+type AuthResponse struct {
+	Token string `json:"token"`
 }

@@ -19,18 +19,15 @@ func ProductToProductResponse(product *entity.Product) payload.ProductResponse {
 	}
 }
 
-func ProdsToListProdsResponse(products []entity.Product, pagination *entity.Pagination) payload.ListProductResponse {
+func ProdsToListProdsResponse(products []entity.Product, pagination *entity.Pagination) payload.ListProductResponses {
 	listProdResponse := make([]payload.ProductResponse, 0)
 	for _, p := range products {
 		prodResponse := ProductToProductResponse(&p)
 		listProdResponse = append(listProdResponse, prodResponse)
 	}
-	return payload.ListProductResponse{
-		Products:      listProdResponse,
-		Limit:         pagination.Limit,
-		Page:          pagination.Page,
-		TotalElements: pagination.TotalRows,
-		TotalPages:    pagination.TotalPages,
+	return payload.ListProductResponses{
+		Products:           listProdResponse,
+		PaginationResponse: PaginationToPaginationResponse(pagination),
 	}
 }
 

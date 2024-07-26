@@ -74,3 +74,27 @@ func ErrDetectFileType(err error) *AppError {
 func ErrResetFilePointer(err error) *AppError {
 	return NewCustomError(http.StatusInternalServerError, err, err.Error(), "ErrResetFilePointer")
 }
+
+func ErrHashPassword(err error) *AppError {
+	return NewCustomError(http.StatusInternalServerError, err, err.Error(), "ErrHashPassword")
+}
+
+func ErrInvalidHashPassword(err error) *AppError {
+	return NewCustomError(http.StatusInternalServerError, err, err.Error(), "ErrInvalidHashPassword")
+}
+
+func ErrExisted(err error) *AppError {
+	return NewCustomError(http.StatusBadRequest, err, err.Error(), "ErrExisted")
+}
+
+func ErrWrongPassword(err error) *AppError {
+	return NewCustomError(http.StatusBadRequest, err, err.Error(), "ErrIncorrectAccount")
+}
+
+func ErrGenerateToken(err error) *AppError {
+	return NewCustomError(http.StatusBadRequest, err, err.Error(), "ErrGenerateToken")
+}
+
+func ErrInvalidToken(err error) *AppError {
+	return NewCustomError(http.StatusBadRequest, err, err.Error(), "ErrInvalidToken")
+}

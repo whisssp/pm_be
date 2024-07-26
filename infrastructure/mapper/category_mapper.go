@@ -14,18 +14,16 @@ func CategoryToCategoryResponse(e *entity.Category) payload.CategoryResponse {
 	}
 }
 
-func CategoriesToListCategoriesResponse(listEntities []entity.Category, pagination *entity.Pagination) payload.ListCategoriesResponse {
+func CategoriesToListCategoriesResponse(listEntities []entity.Category, pagination *entity.Pagination) payload.ListCategoryResponses {
 	listCateResponse := make([]payload.CategoryResponse, 0)
 	for _, c := range listEntities {
 		cateResponse := CategoryToCategoryResponse(&c)
 		listCateResponse = append(listCateResponse, cateResponse)
 	}
-	return payload.ListCategoriesResponse{
-		Categories:    listCateResponse,
-		Limit:         pagination.Limit,
-		Page:          pagination.Page,
-		TotalElements: pagination.TotalRows,
-		TotalPages:    pagination.TotalPages,
+
+	return payload.ListCategoryResponses{
+		Categories:         listCateResponse,
+		PaginationResponse: PaginationToPaginationResponse(pagination),
 	}
 }
 

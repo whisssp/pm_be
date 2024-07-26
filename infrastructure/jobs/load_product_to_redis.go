@@ -17,7 +17,7 @@ func LoadProductToRedis(p *base.Persistence) {
 		fmt.Println("error getting products from database", err)
 	}
 
-	err = utils.RedisSetHashGenericKeySlice(redisProductKey, prods, entity.GetID, p.RedisExpirationTime)
+	err = utils.RedisSetHashGenericKeySlice(redisProductKey, prods, entity.GetID, p.Redis.KeyExpirationTime)
 	if err != nil {
 		fmt.Println("error adding data", err)
 		return
