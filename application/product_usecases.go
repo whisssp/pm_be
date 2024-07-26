@@ -1,7 +1,9 @@
 package application
 
 import (
+	"errors"
 	"fmt"
+	"gorm.io/gorm"
 	"math"
 	"pm/domain/entity"
 	"pm/infrastructure/controllers/payload"
@@ -13,7 +15,10 @@ import (
 	"strings"
 )
 
-const redisHashKey = "products"
+const (
+	entityName   string = "products"
+	redisHashKey        = "products"
+)
 
 type ProductUsecase interface {
 	CreateProduct(reqPayload *payload.CreateProductRequest) error
@@ -41,7 +46,7 @@ func (p productUsecase) CreateProduct(reqPayload *payload.CreateProductRequest) 
 	err := productRepo.Create(prod)
 	if err != nil {
 		fmt.Printf("error creating product: %v", err)
-		return payload.ErrDB(err)
+		return payload.ErrCannotCreateEntity(entityName, err)
 	}
 
 	err = utils.RedisSetHashGenericKey(redisHashKey, strconv.FormatInt(int64(prod.ID), 10), prod, p.p.Redis.KeyExpirationTime)
@@ -84,7 +89,7 @@ func (p productUsecase) GetAllProducts(filter *entity.ProductFilter, pagination 
 	}
 	prods, err := productRepo.GetAllProducts(filter, pagination)
 	if err != nil {
-		return nil, payload.ErrDB(err)
+		return nil, payload.ErrCannotListEntity(entityName, err)
 	}
 
 	listProdResponse = mapper.ProdsToListProdsResponse(prods, pagination)
@@ -96,17 +101,20 @@ func (p productUsecase) GetProductByID(id int64) (*payload.ProductResponse, erro
 	utils.RedisGetHashGenericKey(redisHashKey, strconv.FormatInt(int64(prod.ID), 10), &prod)
 	productRepo := products.NewProductRepository(p.p)
 	if prod.ID != 0 {
-		_prod, err := productRepo.GetProductByID(id)
-		if err != nil {
-			return nil, payload.ErrEntityNotFound("products", err)
-		}
-		prodResponse := mapper.ProductToProductResponse(_prod)
+		//_prod, err := productRepo.GetProductByID(id)
+		//if err != nil {
+		//	return nil, payload.ErrEntityNotFound(entityName, err)
+		//}
+		prodResponse := mapper.ProductToProductResponse(&prod)
 		return &prodResponse, nil
 	}
 
 	prodPointer, err := productRepo.GetProductByID(id)
 	if err != nil {
-		return nil, payload.ErrEntityNotFound("products", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, payload.ErrEntityNotFound(entityName, err)
+		}
+		return nil, payload.ErrDB(err)
 	}
 	prodResponse := mapper.ProductToProductResponse(prodPointer)
 	return &prodResponse, nil
@@ -120,11 +128,11 @@ func (p productUsecase) DeleteProductByID(id int64) error {
 	productRepo := products.NewProductRepository(p.p)
 	prod, err := productRepo.GetProductByID(id)
 	if err != nil {
-		return payload.ErrEntityNotFound("products", err)
+		return payload.ErrEntityNotFound(entityName, err)
 	}
 	err = productRepo.DeleteProduct(prod)
 	if err != nil {
-		return err
+		return payload.ErrCannotDeleteEntity(entityName, err)
 	}
 	return nil
 }
@@ -133,13 +141,13 @@ func (p productUsecase) UpdateProductByID(id int64, updatePayload *payload.Updat
 	productRepo := products.NewProductRepository(p.p)
 	prod, err := productRepo.GetProductByID(id)
 	if err != nil {
-		return nil, payload.ErrEntityNotFound("products", err)
+		return nil, payload.ErrEntityNotFound(entityName, err)
 	}
 	updatePayload.ID = id
 	mapper.UpdateProduct(prod, updatePayload)
 	_, err = productRepo.Update(prod)
 	if err != nil {
-		return nil, err
+		return nil, payload.ErrCannotUpdateEntity(entityName, err)
 	}
 
 	err = utils.RedisSetHashGenericKey(redisHashKey, strconv.FormatInt(int64(prod.ID), 10), prod, p.p.Redis.KeyExpirationTime)

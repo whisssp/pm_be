@@ -56,10 +56,10 @@ func (s *Server) SetUpRoutes(router *gin.Engine) {
 	fileHandler := handlers.NewFileHandler(s.Persistence)
 	userHandler := handlers.NewUserHandler(s.Persistence)
 
-	productRoute := NewProductRoutes(productHandler)
-	categoryRoute := NewCategoryRoutes(categoryHandler)
-	fileRoute := NewFileRoutes(fileHandler)
-	userRoute := NewUserRoutes(userHandler)
+	productRoute := NewProductRoutes(s.Persistence, productHandler)
+	categoryRoute := NewCategoryRoutes(s.Persistence, categoryHandler)
+	fileRoute := NewFileRoutes(s.Persistence, fileHandler)
+	userRoute := NewUserRoutes(s.Persistence, userHandler)
 
 	v1 := router.Group("/api/v1")
 

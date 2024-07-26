@@ -45,7 +45,7 @@ func (u userUsecase) Authenticate(request *payload.LoginRequest) (*payload.AuthR
 		return nil, payload.ErrWrongPassword(errors.New("incorrect email or password"))
 	}
 
-	token, err := utils.GenerateJwtToken(user)
+	token, err := utils.JwtGenerateJwtToken(user)
 	if err != nil {
 		return nil, payload.ErrGenerateToken(err)
 	}

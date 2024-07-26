@@ -1,13 +1,17 @@
 package products
 
 import (
-	"fmt"
+	"errors"
 	"gorm.io/gorm"
 	"math"
 	"pm/domain/entity"
 	"pm/domain/repository"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/persistences/base"
+)
+
+const (
+	entityName string = "products"
 )
 
 type ProductRepository struct {
@@ -22,7 +26,6 @@ func (prodRepo *ProductRepository) Create(product *entity.Product) error {
 	db := prodRepo.p.GormDB
 	err := db.Create(product).Error
 	if err != nil {
-		fmt.Printf("error creating product on database: %v", err)
 		return payload.ErrDB(err)
 	}
 	return nil
@@ -31,7 +34,10 @@ func (prodRepo *ProductRepository) Create(product *entity.Product) error {
 func (prodRepo *ProductRepository) Update(product *entity.Product) (*entity.Product, error) {
 	db := prodRepo.p.GormDB
 	if err := db.Updates(product).Error; err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, payload.ErrEntityNotFound(entityName, err)
+		}
+		return nil, payload.ErrDB(err)
 	}
 	return product, nil
 }
@@ -40,7 +46,10 @@ func (prodRepo *ProductRepository) GetProductByID(id int64) (*entity.Product, er
 	db := prodRepo.p.GormDB
 	var product entity.Product
 	if err := db.Where("id = ?", id).First(&product).Error; err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+		return nil, payload.ErrDB(err)
 	}
 	return &product, nil
 }
@@ -71,7 +80,10 @@ func (prodRepo *ProductRepository) GetAllProducts(filter *entity.ProductFilter, 
 func (prodRepo *ProductRepository) DeleteProduct(product *entity.Product) error {
 	db := prodRepo.p.GormDB
 	if err := db.Delete(product).Error; err != nil {
-		return err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return payload.ErrEntityNotFound(entityName, err)
+		}
+		return payload.ErrDB(err)
 	}
 	return nil
 }

@@ -13,15 +13,15 @@ const (
 	RoleUser
 )
 
-var allRoles = [2]string{"ADMIN", "USER"}
+var AllRoles = [2]string{"ADMIN", "USER"}
 
 func (item *UserRole) String() string {
-	return allRoles[*item-1]
+	return AllRoles[*item-1]
 }
 
 func parseStr2ItemStatus(s string) (UserRole, error) {
-	for i := range allRoles {
-		if allRoles[i] == s {
+	for i := range AllRoles {
+		if AllRoles[i] == s {
 			return UserRole(i), nil
 		}
 	}

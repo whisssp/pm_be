@@ -1,15 +1,21 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"net/http"
+	"gorm.io/gorm"
 	"pm/application"
 	"pm/domain/entity"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/persistences/base"
+	"pm/utils"
 	"strconv"
 	"strings"
+)
+
+const (
+	entityName string = "products"
 )
 
 type ProductHandler struct {
@@ -38,16 +44,15 @@ func NewProductHandler(p *base.Persistence) *ProductHandler {
 func (handler *ProductHandler) HandleCreateProduct(c *gin.Context) {
 	var createProdReq payload.CreateProductRequest
 	if err := c.ShouldBindJSON(&createProdReq); err != nil {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		utils.HttpErrorResponse(c, payload.ErrInvalidRequest(err))
 		return
 	}
 
 	if err := handler.usecase.CreateProduct(&createProdReq); err != nil {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		utils.HttpErrorResponse(c, err)
 		return
 	}
-
-	c.JSON(http.StatusOK, payload.SuccessResponse(nil, ""))
+	utils.HTTPSuccessResponse(c, nil, "")
 }
 
 // GetAllProducts godoc
@@ -68,22 +73,22 @@ func (handler *ProductHandler) HandleCreateProduct(c *gin.Context) {
 func (handler *ProductHandler) HandleGetAllProducts(c *gin.Context) {
 	var filter entity.ProductFilter
 	if err := c.ShouldBindQuery(&filter); err != nil {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		utils.HttpErrorResponse(c, payload.ErrInvalidRequest(err))
 		return
 	}
 
 	pagination := entity.InitPaginate()
 	if err := c.ShouldBindQuery(&pagination); err != nil {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		utils.HttpErrorResponse(c, payload.ErrInvalidRequest(err))
 		return
 	}
 
 	prods, err := handler.usecase.GetAllProducts(&filter, pagination)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		utils.HttpErrorResponse(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, payload.SuccessResponse(prods, ""))
+	utils.HTTPSuccessResponse(c, prods, "")
 }
 
 // GetProductByID godoc
@@ -102,20 +107,16 @@ func (handler *ProductHandler) HandleGetAllProducts(c *gin.Context) {
 func (handler *ProductHandler) HandleGetProductByID(c *gin.Context) {
 	id, _ := strconv.ParseInt(removeSlashFromParam(c.Param("id")), 10, 64)
 	if id == 0 {
-		c.JSON(http.StatusBadRequest, payload.ErrParamRequired(fmt.Errorf("[id] parameter is required")))
+		utils.HttpErrorResponse(c, payload.ErrParamRequired(fmt.Errorf("[id] parameter is required")))
 		return
 	}
 
 	prod, err := handler.usecase.GetProductByID(id)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			c.JSON(http.StatusNotFound, payload.ErrEntityNotFound("products", err))
-			return
-		}
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		utils.HttpErrorResponse(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, payload.SuccessResponse(prod, ""))
+	utils.HTTPSuccessResponse(c, prod, "")
 }
 
 // DeleteProductByID godoc
@@ -134,20 +135,16 @@ func (handler *ProductHandler) HandleGetProductByID(c *gin.Context) {
 func (handler *ProductHandler) HandleDeleteProductByID(c *gin.Context) {
 	id, _ := strconv.ParseInt(removeSlashFromParam(c.Param("id")), 10, 64)
 	if id == 0 {
-		c.JSON(http.StatusBadRequest, payload.ErrParamRequired(fmt.Errorf("[id] parameter is required")))
+		utils.HttpErrorResponse(c, payload.ErrParamRequired(fmt.Errorf("[id] parameter is required")))
 		return
 	}
 
 	err := handler.usecase.DeleteProductByID(id)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			c.JSON(http.StatusNotFound, payload.ErrEntityNotFound("products", err))
-			return
-		}
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		utils.HttpErrorResponse(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, payload.SuccessResponse(nil, ""))
+	utils.HTTPSuccessResponse(c, nil, "")
 }
 
 // UpdateProductByID godoc
@@ -166,26 +163,26 @@ func (handler *ProductHandler) HandleDeleteProductByID(c *gin.Context) {
 func (handler *ProductHandler) HandleUpdateProductByID(c *gin.Context) {
 	id, _ := strconv.ParseInt(removeSlashFromParam(c.Param("id")), 10, 64)
 	if id == 0 {
-		c.JSON(http.StatusBadRequest, payload.ErrParamRequired(fmt.Errorf("[id] parameter is required")))
+		utils.HttpErrorResponse(c, payload.ErrParamRequired(fmt.Errorf("[id] parameter is required")))
 		return
 	}
 
 	var updateProductReq payload.UpdateProductRequest
 	if err := c.ShouldBindJSON(&updateProductReq); err != nil {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		utils.HttpErrorResponse(c, err)
 		return
 	}
 
 	prodUpdated, err := handler.usecase.UpdateProductByID(id, &updateProductReq)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			c.JSON(http.StatusNotFound, payload.ErrEntityNotFound("products", err))
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			utils.HttpNotFoundResponse(c, err)
 			return
 		}
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		utils.HttpErrorResponse(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, payload.SuccessResponse(prodUpdated, ""))
+	utils.HTTPSuccessResponse(c, prodUpdated, "")
 }
 
 func removeSlashFromParam(param string) string {

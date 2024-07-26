@@ -6,6 +6,7 @@ import (
 	"pm/domain/entity"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/persistences/base"
+	"strconv"
 	"time"
 )
 
@@ -22,11 +23,11 @@ func InitJwtHelper(p *base.Persistence) {
 	persistence = p
 }
 
-func GenerateJwtToken(user *entity.User) (string, error) {
+func JwtGenerateJwtToken(user *entity.User) (string, error) {
 	expiration := time.Now().Add(persistence.Jwt.TokenExpiration).Unix()
 	arrBytesKey := []byte(persistence.Jwt.SecretKey)
 	claims := jwt.MapClaims{
-		subjectKey: user.ID,
+		subjectKey: strconv.Itoa(int(user.ID)),
 		//userIDKey:    user.ID,
 		userRoleKey:  user.Role,
 		expiredAtKey: expiration,
@@ -38,11 +39,24 @@ func GenerateJwtToken(user *entity.User) (string, error) {
 	return token, nil
 }
 
-func GetMapClaims(token *jwt.Token) jwt.MapClaims {
+func JwtGetMapClaims(token *jwt.Token) jwt.MapClaims {
 	return token.Claims.(jwt.MapClaims)
 }
 
-func ValidateToken(token string) (*jwt.Token, error) {
+func JwtGetSubject(token *jwt.Token) interface{} {
+	if token != nil {
+		claims := JwtGetMapClaims(token)
+		subject := claims[subjectKey]
+		if subject == nil {
+			fmt.Println("error getting subject from jwt token")
+			return nil
+		}
+		return subject
+	}
+	return nil
+}
+
+func JwtValidateToken(token string) (*jwt.Token, error) {
 	return jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])

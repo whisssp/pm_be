@@ -4,23 +4,43 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 type AppError struct {
-	StatusCode int         `json:"code"`
-	Message    string      `json:"message"`
-	ErrKey     string      `json:"-"`
-	RootErr    error       `json:"-"`
-	Data       interface{} `json:"data"`
+	StatusCode int    `json:"status_code"`
+	RootErr    error  `json:"-"`
+	Message    string `json:"message"`
+	Log        string `json:"-"`
+	Key        string `json:"-"`
 }
 
-func NewErrResponse(code int, message, key string, RootErr error) *AppError {
+func NewFullErrorResponse(statusCode int, root error, msg, log, key string) *AppError {
 	return &AppError{
-		StatusCode: code,
-		Message:    fmt.Sprintf("%s: %s.", key, RootErr.Error()),
-		ErrKey:     key,
-		RootErr:    RootErr,
-		Data:       nil,
+		StatusCode: statusCode,
+		RootErr:    root,
+		Message:    fmt.Sprintf("Log: %s\nMessage:%s", log, msg),
+		Log:        log,
+		Key:        key,
+	}
+}
+
+func NewErrorResponse(root error, msg, log, key string) *AppError {
+	return &AppError{
+		StatusCode: http.StatusBadRequest,
+		RootErr:    root,
+		Message:    fmt.Sprintf("Log: %s\nMessage:%s", log, msg),
+		Log:        log,
+		Key:        key,
+	}
+}
+
+func NewUnauthorized(root error, msg, key string) *AppError {
+	return &AppError{
+		StatusCode: http.StatusUnauthorized,
+		RootErr:    root,
+		Message:    msg,
+		Key:        key,
 	}
 }
 
@@ -35,66 +55,105 @@ func (e *AppError) Error() string {
 	return e.RootError().Error()
 }
 
-func NewCustomError(code int, root error, msg, key string) *AppError {
-	return NewErrResponse(code, root.Error(), key, errors.New(msg))
-}
-
-func ErrInvalidRequest(err error) *AppError {
-	return NewCustomError(http.StatusBadRequest, err, err.Error(), "ErrInvalidRequest")
-}
-
-func ErrEntityNotFound(entity string, err error) *AppError {
-	return NewCustomError(http.StatusNotFound, err, err.Error(), fmt.Sprintf("ErrNotFound"))
-}
-
-func ErrBindingData(err error) *AppError {
-	return NewCustomError(http.StatusInternalServerError, err, err.Error(), fmt.Sprintf("ErrBindingData"))
-}
-
-func ErrValidateFailed(err error) *AppError {
-	return NewCustomError(http.StatusBadRequest, err, err.Error(), fmt.Sprintf("ErrValidateFailed"))
+func NewCustomError(root error, msg string, key string) *AppError {
+	if root != nil {
+		return NewErrorResponse(root, msg, root.Error(), key)
+	}
+	return NewErrorResponse(errors.New(msg), msg, root.Error(), key)
 }
 
 func ErrDB(err error) *AppError {
-	return NewErrResponse(http.StatusInternalServerError, err.Error(), "ERR_DB", err)
+	return NewFullErrorResponse(http.StatusInternalServerError, err, "something went wrong with DB", err.Error(), "DB_ERROR")
+}
+
+func ErrInvalidRequest(err error) *AppError {
+	return NewErrorResponse(err, "invalid request", err.Error(), "ErrInvalidRequest")
+}
+
+func ErrInternal(err error) *AppError {
+	return NewFullErrorResponse(http.StatusInternalServerError, err, "something went wrong in the server", err.Error(), "ErrInternal")
+}
+
+func ErrCannotListEntity(entity string, err error) *AppError {
+	return NewCustomError(err, fmt.Sprintf("Cannot list %s", strings.ToLower(entity)), fmt.Sprintf("ErrCannotList%s", entity))
+}
+
+func ErrCannotDeleteEntity(entity string, err error) *AppError {
+	return NewCustomError(err, fmt.Sprintf("Cannot delete %s", strings.ToLower(entity)), fmt.Sprintf("ErrCannotDelete%s", entity))
+}
+
+func ErrCannotUpdateEntity(entity string, err error) *AppError {
+	return NewCustomError(err, fmt.Sprintf("Cannot update %s", strings.ToLower(entity)), fmt.Sprintf("ErrCannotUpdate%s", entity))
+}
+
+func ErrCannotGetEntity(entity string, err error) *AppError {
+	return NewCustomError(err, fmt.Sprintf("Cannot get %s", strings.ToLower(entity)), fmt.Sprintf("ErrCannotGet%s", entity))
+}
+
+func ErrEntityDeleted(entity string, err error) *AppError {
+	return NewCustomError(err, fmt.Sprintf("%s deleted", strings.ToLower(entity)), fmt.Sprintf("Err%sDeleted", entity))
+}
+
+func ErrEntityExisted(entity string, err error) *AppError {
+	return NewCustomError(err, fmt.Sprintf("%s already exists", strings.ToLower(entity)), fmt.Sprintf("Err%sAlreadyExists", entity))
+}
+
+func ErrEntityNotFound(entity string, err error) *AppError {
+	return NewFullErrorResponse(http.StatusNotFound, err, fmt.Sprintf("%s not found", strings.ToLower(entity)), err.Error(), fmt.Sprintf("Err%sNotFound"))
+}
+
+func ErrCannotCreateEntity(entity string, err error) *AppError {
+	return NewCustomError(err, fmt.Sprintf("Cannot create %s", strings.ToLower(entity)), fmt.Sprintf("ErrCannotCreate%s", entity))
+}
+
+func ErrNoPermission(entity string, err error) *AppError {
+	return NewCustomError(err, fmt.Sprintf("You have no permission"), fmt.Sprintf("ErrNoPermission"))
+}
+
+func ErrBindingData(err error) *AppError {
+	return NewCustomError(err, fmt.Sprintf("error binding data"), fmt.Sprintf("ErrBindingData"))
+}
+
+func ErrValidateFailed(err error) *AppError {
+	return NewCustomError(err, err.Error(), fmt.Sprintf("ErrValidateFailed"))
 }
 
 func ErrParamRequired(err error) *AppError {
-	return NewCustomError(http.StatusBadRequest, err, fmt.Sprintf("missing path parameter. %s", err.Error()), fmt.Sprintf("ErrParamRequired"))
+	return NewCustomError(err, err.Error(), fmt.Sprintf("ErrParamRequired"))
 }
 
 func ErrUploadFile(err error) *AppError {
-	return NewCustomError(http.StatusBadRequest, err, fmt.Sprintf("missing path parameter. %s", err.Error()), fmt.Sprintf("ErrUploadFile"))
+	return NewCustomError(err, err.Error(), fmt.Sprintf("ErrUploadFile"))
 }
 
 func ErrDetectFileType(err error) *AppError {
-	return NewCustomError(http.StatusInternalServerError, err, err.Error(), "ErrDetectFileType")
+	return NewCustomError(err, err.Error(), "ErrDetectFileType")
 }
 
 func ErrResetFilePointer(err error) *AppError {
-	return NewCustomError(http.StatusInternalServerError, err, err.Error(), "ErrResetFilePointer")
+	return NewCustomError(err, err.Error(), "ErrResetFilePointer")
 }
 
 func ErrHashPassword(err error) *AppError {
-	return NewCustomError(http.StatusInternalServerError, err, err.Error(), "ErrHashPassword")
+	return NewCustomError(err, err.Error(), "ErrHashPassword")
 }
 
 func ErrInvalidHashPassword(err error) *AppError {
-	return NewCustomError(http.StatusInternalServerError, err, err.Error(), "ErrInvalidHashPassword")
+	return NewCustomError(err, err.Error(), "ErrInvalidHashPassword")
 }
 
 func ErrExisted(err error) *AppError {
-	return NewCustomError(http.StatusBadRequest, err, err.Error(), "ErrExisted")
+	return NewCustomError(err, err.Error(), "ErrExisted")
 }
 
 func ErrWrongPassword(err error) *AppError {
-	return NewCustomError(http.StatusBadRequest, err, err.Error(), "ErrIncorrectAccount")
+	return NewCustomError(err, err.Error(), "ErrIncorrectAccount")
 }
 
 func ErrGenerateToken(err error) *AppError {
-	return NewCustomError(http.StatusBadRequest, err, err.Error(), "ErrGenerateToken")
+	return NewCustomError(err, err.Error(), "ErrGenerateToken")
 }
 
 func ErrInvalidToken(err error) *AppError {
-	return NewCustomError(http.StatusBadRequest, err, err.Error(), "ErrInvalidToken")
+	return NewCustomError(err, err.Error(), "ErrInvalidToken")
 }

@@ -3,14 +3,16 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"pm/infrastructure/controllers/handlers"
+	"pm/infrastructure/persistences/base"
 )
 
 type CategoryRoutes struct {
 	handler *handlers.CategoryHandler
+	p       *base.Persistence
 }
 
-func NewCategoryRoutes(handler *handlers.CategoryHandler) *CategoryRoutes {
-	return &CategoryRoutes{handler}
+func NewCategoryRoutes(p *base.Persistence, handler *handlers.CategoryHandler) *CategoryRoutes {
+	return &CategoryRoutes{handler, p}
 }
 
 func (router *CategoryRoutes) RegisterRoutes(routerGroup *gin.RouterGroup) {
