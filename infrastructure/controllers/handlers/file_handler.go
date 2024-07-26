@@ -20,7 +20,7 @@ func NewFileHandler(p *base.Persistence) *FileHandler {
 	return &FileHandler{p, fileUsecase}
 }
 
-// Upload file 			godoc
+// HandleUploadImage Upload file 			godoc
 // @Summary 			Upload a file
 // @Description			Upload a file to get link get media
 // Tag					File

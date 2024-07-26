@@ -18,6 +18,15 @@ func NewUserHandler(p *base.Persistence) *UserHandler {
 	return &UserHandler{p, userUsecase}
 }
 
+// Authenticate 			godoc
+// @Summary 			Authenticate user to get access resource
+// @Description			Authenticate to receive a token string to use it for verifying permission
+// Tag					User
+// @Param				payload.LoginRequest body payload.LoginRequest{} true "payload.LoginRequest"
+// @Success				200		{object} payload.AppResponse{}
+// @Failure      		400  	{object} payload.AppError{}
+// @Failure 			500 	{object} payload.AppError{}
+// @Router				/users/authenticate [post]
 func (h *UserHandler) HandleAuthenticate(c *gin.Context) {
 	var loginRequest payload.LoginRequest
 	if err := c.ShouldBindJSON(&loginRequest); err != nil {
@@ -34,6 +43,15 @@ func (h *UserHandler) HandleAuthenticate(c *gin.Context) {
 	c.JSON(http.StatusOK, payload.SuccessResponse(response, ""))
 }
 
+// Create User 			godoc
+// @Summary 			Create a user
+// @Description			Create a user to get info to authenticate
+// Tag					User
+// @Param				payload.UserRequest body payload.UserRequest{} true "payload.UserRequest"
+// @Success				200		{object} payload.AppResponse{}
+// @Failure      		400  	{object} payload.AppError{}
+// @Failure 			500 	{object} payload.AppError{}
+// @Router				/users/authenticate [post]
 func (h *UserHandler) HandleCreateUser(c *gin.Context) {
 	var userRequest payload.UserRequest
 	if err := c.ShouldBindJSON(&userRequest); err != nil {

@@ -45,13 +45,13 @@ func AuthMiddleware(p *base.Persistence, role string) gin.HandlerFunc {
 		idInt, _ := strconv.ParseInt(id.(string), 10, 64)
 		user, err := users.NewUserRepository(p).GetUserByID(idInt)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, payload.NewUnauthorized(errors.New("unauthorized"), "not found the user from token", "ErrInvalidClaims"))
+			c.AbortWithStatusJSON(http.StatusUnauthorized, payload.NewUnauthorized(errors.New("unauthorized"), "Not found the user from token", "ErrInvalidClaims"))
 			return
 		}
 		claims := utils.JwtGetMapClaims(jwtToken)
 		roleFromClaims := claims[roleKey]
-		if roleFromClaims != user.Role {
-			c.AbortWithStatusJSON(http.StatusForbidden, payload.NewUnauthorized(errors.New("unauthorized"), "You need full permission to use this resource", "ErrNoPermission"))
+		if user.Role == roleFromClaims && roleFromClaims != role {
+			c.AbortWithStatusJSON(http.StatusForbidden, payload.NewUnauthorized(errors.New("unauthorized"), "You don't have permission to access this resource", "ErrNoPermission"))
 			return
 		}
 

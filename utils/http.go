@@ -7,7 +7,7 @@ import (
 	"pm/infrastructure/controllers/payload"
 )
 
-func HTTPSuccessResponse(ctx *gin.Context, data interface{}, message string) {
+func HttpSuccessResponse(ctx *gin.Context, data interface{}, message string) {
 	ctx.JSON(http.StatusOK, payload.SuccessResponse(data, message))
 }
 
@@ -28,8 +28,4 @@ func HttpNotFoundResponse(ctx *gin.Context, err error) {
 		return
 	}
 	ctx.JSON(http.StatusNotFound, appErr)
-}
-
-func HttpUnauthorizedResponse(ctx *gin.Context, err error) {
-
 }

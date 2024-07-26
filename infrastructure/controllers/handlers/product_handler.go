@@ -28,7 +28,7 @@ func NewProductHandler(p *base.Persistence) *ProductHandler {
 	return &ProductHandler{p, usecase}
 }
 
-// CreateProduct godoc
+// HandleCreateProduct CreateProduct godoc
 //
 //	@Summary		Create a product
 //	@Description	create a new product
@@ -52,10 +52,10 @@ func (handler *ProductHandler) HandleCreateProduct(c *gin.Context) {
 		utils.HttpErrorResponse(c, err)
 		return
 	}
-	utils.HTTPSuccessResponse(c, nil, "")
+	utils.HttpSuccessResponse(c, nil, "")
 }
 
-// GetAllProducts godoc
+// HandleGetAllProducts GetAllProducts godoc
 //
 //	@Summary		Get all products
 //	@Description	Get all products which is not deleted
@@ -64,7 +64,7 @@ func (handler *ProductHandler) HandleCreateProduct(c *gin.Context) {
 //	@Produce		json
 //	@Param			limit		query		int						false	"the limit perpage"
 //	@Param			page		query		int						false	"the page nummber"
-//	@Param			filter		query		payload.ProductFilter	false	"filtering the data"
+//	@Param			filter		query		entity.ProductFilter	false	"filtering the data"
 //	@Success		200			{object}	payload.AppResponse
 //	@Failure		400			{object}	payload.AppError
 //	@Failure		500			{object}	payload.AppError
@@ -88,10 +88,10 @@ func (handler *ProductHandler) HandleGetAllProducts(c *gin.Context) {
 		utils.HttpErrorResponse(c, err)
 		return
 	}
-	utils.HTTPSuccessResponse(c, prods, "")
+	utils.HttpSuccessResponse(c, prods, "")
 }
 
-// GetProductByID godoc
+// HandleGetProductByID GetProductByID godoc
 //
 //	@Summary		Get product by id
 //	@Description	Get product by id
@@ -116,10 +116,10 @@ func (handler *ProductHandler) HandleGetProductByID(c *gin.Context) {
 		utils.HttpErrorResponse(c, err)
 		return
 	}
-	utils.HTTPSuccessResponse(c, prod, "")
+	utils.HttpSuccessResponse(c, prod, "")
 }
 
-// DeleteProductByID godoc
+// HandleDeleteProductByID DeleteProductByID godoc
 //
 //	@Summary		Delete product by id
 //	@Description	Delete product by id
@@ -144,10 +144,10 @@ func (handler *ProductHandler) HandleDeleteProductByID(c *gin.Context) {
 		utils.HttpErrorResponse(c, err)
 		return
 	}
-	utils.HTTPSuccessResponse(c, nil, "")
+	utils.HttpSuccessResponse(c, nil, "")
 }
 
-// UpdateProductByID godoc
+// HandleUpdateProductByID UpdateProductByID godoc
 //
 //	@Summary		Update product by id
 //	@Description	Update product by id
@@ -155,6 +155,7 @@ func (handler *ProductHandler) HandleDeleteProductByID(c *gin.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id				path		int	true	"the id of product to update"
+//	@Param			UpdateProductRequest	body		payload.UpdateProductRequest	true	"update product with update product request"
 //	@Success		200				{object}	payload.AppResponse
 //	@Failure		400				{object}	payload.AppError
 //	@Failure		404				{object}	payload.AppError
@@ -182,7 +183,7 @@ func (handler *ProductHandler) HandleUpdateProductByID(c *gin.Context) {
 		utils.HttpErrorResponse(c, err)
 		return
 	}
-	utils.HTTPSuccessResponse(c, prodUpdated, "")
+	utils.HttpSuccessResponse(c, prodUpdated, "")
 }
 
 func removeSlashFromParam(param string) string {

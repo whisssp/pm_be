@@ -1,11 +1,18 @@
 definitions:
+  entity.UserRole:
+    enum:
+    - 0
+    - 1
+    type: integer
+    x-enum-varnames:
+    - RoleAdmin
+    - RoleUser
   payload.AppError:
     properties:
-      code:
-        type: integer
-      data: {}
       message:
         type: string
+      status_code:
+        type: integer
     type: object
   payload.AppResponse:
     properties:
@@ -14,6 +21,13 @@ definitions:
       data: {}
       message:
         type: string
+    type: object
+  payload.CreateCategoryRequest:
+    properties:
+      name:
+        type: string
+    required:
+    - name
     type: object
   payload.CreateProductRequest:
     properties:
@@ -36,12 +50,296 @@ definitions:
     - name
     - price
     type: object
+  payload.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        maxLength: 11
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  payload.UpdateCategoryRequest:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  payload.UpdateProductRequest:
+    properties:
+      categoryId:
+        type: integer
+      description:
+        type: string
+      id:
+        type: integer
+      imagePath:
+        type: string
+      name:
+        type: string
+      price:
+        minimum: 0
+        type: number
+      stock:
+        minimum: 0
+        type: integer
+    required:
+    - categoryId
+    - name
+    - price
+    type: object
+  payload.UserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        maxLength: 150
+        type: string
+      password:
+        maxLength: 11
+        minLength: 6
+        type: string
+      phone:
+        maxLength: 11
+        type: string
+      role:
+        allOf:
+        - $ref: '#/definitions/entity.UserRole'
+        enum:
+        - 1
+        - 2
+    required:
+    - email
+    - name
+    - password
+    - phone
+    - role
+    type: object
 info:
   contact: {}
   description: This is a sample server celler server.
   title: Product Management API
   version: "1.0"
 paths:
+  /categories:
+    get:
+      consumes:
+      - application/json
+      description: Get all categoies which is not deleted
+      parameters:
+      - description: the limit perpage
+        in: query
+        name: limit
+        type: integer
+      - description: the page nummber
+        in: query
+        name: page
+        type: integer
+      - in: query
+        name: categoryName
+        type: string
+      - in: query
+        name: createdAtFrom
+        type: string
+      - in: query
+        name: createdAtTo
+        type: string
+      - in: query
+        name: deleted
+        type: boolean
+      - in: query
+        name: id
+        type: integer
+      - in: query
+        name: keyword
+        type: string
+      - in: query
+        name: updatedAtFrom
+        type: string
+      - in: query
+        name: updatedAtTo
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Get all categories
+      tags:
+      - Category
+    post:
+      consumes:
+      - application/json
+      description: create a new category
+      parameters:
+      - description: create category with create category request
+        in: body
+        name: CreateCategoryRequest
+        required: true
+        schema:
+          $ref: '#/definitions/payload.CreateCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Create a category
+      tags:
+      - Category
+  /categories/:id:
+    delete:
+      consumes:
+      - application/json
+      description: Delete category by id
+      parameters:
+      - description: the id of category to delete
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Delete category by id
+      tags:
+      - Category
+    get:
+      consumes:
+      - application/json
+      description: Get category by id
+      parameters:
+      - description: the id of the category to return
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Get category by id
+      tags:
+      - Category
+    put:
+      consumes:
+      - application/json
+      description: Update category by id
+      parameters:
+      - description: the id of category to update
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: update cateogory with update category request
+        in: body
+        name: UpdateCategoryRequest
+        required: true
+        schema:
+          $ref: '#/definitions/payload.UpdateCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Update category by id
+      tags:
+      - Category
+  /files/upload/image:
+    post:
+      description: Upload a file to get link get media
+      parameters:
+      - description: file
+        in: formData
+        name: file
+        required: true
+        type: file
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Upload a file
   /products:
     get:
       consumes:
@@ -218,6 +516,12 @@ paths:
         name: id
         required: true
         type: integer
+      - description: update product with update product request
+        in: body
+        name: UpdateProductRequest
+        required: true
+        schema:
+          $ref: '#/definitions/payload.UpdateProductRequest'
       produces:
       - application/json
       responses:
@@ -308,4 +612,28 @@ paths:
       summary: Get all products
       tags:
       - Product
+  /users/authenticate:
+    post:
+      description: Create a user to get info to authenticate
+      parameters:
+      - description: payload.UserRequest
+        in: body
+        name: payload.UserRequest
+        required: true
+        schema:
+          $ref: '#/definitions/payload.UserRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Create a user
 swagger: "2.0"
