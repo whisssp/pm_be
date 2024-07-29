@@ -7,7 +7,6 @@ import (
 	"pm/domain/entity"
 	"pm/domain/repository"
 	"pm/infrastructure/controllers/payload"
-	"pm/infrastructure/persistences/base"
 )
 
 const (
@@ -15,15 +14,15 @@ const (
 )
 
 type ProductRepository struct {
-	p *base.Persistence
+	db *gorm.DB
 }
 
-func NewProductRepository(p *base.Persistence) repository.ProductRepository {
-	return &ProductRepository{p}
+func NewProductRepository(db *gorm.DB) repository.ProductRepository {
+	return &ProductRepository{db}
 }
 
 func (prodRepo *ProductRepository) Create(product *entity.Product) error {
-	db := prodRepo.p.GormDB
+	db := prodRepo.db
 	err := db.Create(product).Error
 	if err != nil {
 		return payload.ErrDB(err)
@@ -32,7 +31,7 @@ func (prodRepo *ProductRepository) Create(product *entity.Product) error {
 }
 
 func (prodRepo *ProductRepository) Update(product *entity.Product) (*entity.Product, error) {
-	db := prodRepo.p.GormDB
+	db := prodRepo.db
 	if err := db.Updates(product).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, payload.ErrEntityNotFound(entityName, err)
@@ -42,8 +41,24 @@ func (prodRepo *ProductRepository) Update(product *entity.Product) (*entity.Prod
 	return product, nil
 }
 
+func (prodRepo *ProductRepository) UpdateMultiProduct(products ...entity.Product) ([]entity.Product, error) {
+	tx := prodRepo.db.Begin()
+	if err := tx.Updates(&products).Error; err != nil {
+		tx.Rollback()
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, payload.ErrEntityNotFound(entityName, err)
+		}
+		return nil, payload.ErrDB(err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return nil, payload.ErrDB(err)
+	}
+	return products, nil
+}
+
 func (prodRepo *ProductRepository) GetProductByID(id int64) (*entity.Product, error) {
-	db := prodRepo.p.GormDB
+	db := prodRepo.db
 	var product entity.Product
 	if err := db.Where("id = ?", id).First(&product).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -57,7 +72,7 @@ func (prodRepo *ProductRepository) GetProductByID(id int64) (*entity.Product, er
 func (prodRepo *ProductRepository) GetAllProducts(filter *entity.ProductFilter, pagination *entity.Pagination) ([]entity.Product, error) {
 	var totalRows int64
 	products := make([]entity.Product, 0)
-	db := prodRepo.p.GormDB
+	db := prodRepo.db
 	db = db.Model(entity.Product{}).Count(&totalRows)
 	if filter != nil {
 		db = db.Scopes(applyFilter(filter)).Count(&totalRows)
@@ -78,7 +93,7 @@ func (prodRepo *ProductRepository) GetAllProducts(filter *entity.ProductFilter, 
 }
 
 func (prodRepo *ProductRepository) DeleteProduct(product *entity.Product) error {
-	db := prodRepo.p.GormDB
+	db := prodRepo.db
 	if err := db.Delete(product).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return payload.ErrEntityNotFound(entityName, err)
@@ -86,6 +101,20 @@ func (prodRepo *ProductRepository) DeleteProduct(product *entity.Product) error 
 		return payload.ErrDB(err)
 	}
 	return nil
+}
+
+func (prodRepo *ProductRepository) GetStockByProductIDs(orderItems ...entity.OrderItem) ([]entity.Product, error) {
+	keyArr := make([]uint, len(orderItems))
+	for i, _ := range keyArr {
+		keyArr[i] = orderItems[i].ProductID
+	}
+
+	products := make([]entity.Product, len(orderItems))
+	err := prodRepo.db.Where("id IN ?", keyArr).Find(&products)
+	if err.Error != nil {
+		return nil, err.Error
+	}
+	return products, nil
 }
 
 func paginate(pagination *entity.Pagination) func(db *gorm.DB) *gorm.DB {

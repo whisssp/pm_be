@@ -22,9 +22,16 @@ func NewDBConnection(dsn string) (*gorm.DB, error) {
 }
 
 func Migrate(db *gorm.DB) error {
+	//err := db.AutoMigrate(&entity.User{})
+	//if err != nil {
+	//	return payload.ErrDB(errors.New("failed to migrate User table"))
+	//}
+
 	return db.AutoMigrate(
-		&entity.Category{},
 		&entity.Product{},
+		&entity.Category{},
+		&entity.Order{},
+		&entity.OrderItem{},
 		&entity.User{},
 	)
 }

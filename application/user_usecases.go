@@ -32,7 +32,7 @@ func (u userUsecase) Authenticate(request *payload.LoginRequest) (*payload.AuthR
 		return nil, payload.ErrInvalidRequest(err)
 	}
 
-	userRepo := users.NewUserRepository(u.p)
+	userRepo := users.NewUserRepository(u.p.GormDB)
 	user, err := userRepo.GetUserByEmail(request.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -57,7 +57,7 @@ func (u userUsecase) CreateUser(request *payload.UserRequest) error {
 	if err := utils.ValidateReqPayload(request); err != nil {
 		return payload.ErrInvalidRequest(err)
 	}
-	userRepo := users.NewUserRepository(u.p)
+	userRepo := users.NewUserRepository(u.p.GormDB)
 	user := mapper.UserRequestToUser(request)
 	hashed, err := utils.HashPassword(user.Password)
 	if err != nil {

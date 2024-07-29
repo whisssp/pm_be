@@ -42,7 +42,7 @@ func (p productUsecase) CreateProduct(reqPayload *payload.CreateProductRequest) 
 	}
 
 	prod := mapper.PayloadToProduct(reqPayload)
-	productRepo := products.NewProductRepository(p.p)
+	productRepo := products.NewProductRepository(p.p.GormDB)
 	err := productRepo.Create(prod)
 	if err != nil {
 		fmt.Printf("error creating product: %v", err)
@@ -67,7 +67,7 @@ func (p productUsecase) CreateProduct(reqPayload *payload.CreateProductRequest) 
 
 func (p productUsecase) GetAllProducts(filter *entity.ProductFilter, pagination *entity.Pagination) (*payload.ListProductResponses, error) {
 	var listProdResponse payload.ListProductResponses
-	productRepo := products.NewProductRepository(p.p)
+	productRepo := products.NewProductRepository(p.p.GormDB)
 	prods := make([]entity.Product, 0)
 	if filter.IsNil() == true {
 		productsMap := make(map[string]entity.Product)
@@ -99,7 +99,7 @@ func (p productUsecase) GetAllProducts(filter *entity.ProductFilter, pagination 
 func (p productUsecase) GetProductByID(id int64) (*payload.ProductResponse, error) {
 	var prod entity.Product
 	utils.RedisGetHashGenericKey(redisHashKey, strconv.FormatInt(int64(prod.ID), 10), &prod)
-	productRepo := products.NewProductRepository(p.p)
+	productRepo := products.NewProductRepository(p.p.GormDB)
 	if prod.ID != 0 {
 		//_prod, err := productRepo.GetProductByID(id)
 		//if err != nil {
@@ -125,7 +125,7 @@ func (p productUsecase) DeleteProductByID(id int64) error {
 	if err != nil {
 		fmt.Printf("error deleting on redis: key: %v - error: %v", id, err)
 	}
-	productRepo := products.NewProductRepository(p.p)
+	productRepo := products.NewProductRepository(p.p.GormDB)
 	prod, err := productRepo.GetProductByID(id)
 	if err != nil {
 		return payload.ErrEntityNotFound(entityName, err)
@@ -138,7 +138,7 @@ func (p productUsecase) DeleteProductByID(id int64) error {
 }
 
 func (p productUsecase) UpdateProductByID(id int64, updatePayload *payload.UpdateProductRequest) (*payload.ProductResponse, error) {
-	productRepo := products.NewProductRepository(p.p)
+	productRepo := products.NewProductRepository(p.p.GormDB)
 	prod, err := productRepo.GetProductByID(id)
 	if err != nil {
 		return nil, payload.ErrEntityNotFound(entityName, err)

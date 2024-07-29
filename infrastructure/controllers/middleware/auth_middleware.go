@@ -8,6 +8,7 @@ import (
 	"pm/infrastructure/implementations/users"
 	"pm/infrastructure/persistences/base"
 	"pm/utils"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -20,7 +21,7 @@ const (
 	roleKey             = "role"
 )
 
-func AuthMiddleware(p *base.Persistence, role string) gin.HandlerFunc {
+func AuthMiddleware(p *base.Persistence, roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		bearerToken := c.GetHeader(authorizationHeader)
 		if bearerToken == "" || !strings.Contains(bearerToken, strings.TrimSpace(bearerPrefix)) {
@@ -43,19 +44,23 @@ func AuthMiddleware(p *base.Persistence, role string) gin.HandlerFunc {
 			return
 		}
 		idInt, _ := strconv.ParseInt(id.(string), 10, 64)
-		user, err := users.NewUserRepository(p).GetUserByID(idInt)
+		user, err := users.NewUserRepository(p.GormDB).GetUserByID(idInt)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, payload.NewUnauthorized(errors.New("unauthorized"), "Not found the user from token", "ErrInvalidClaims"))
 			return
 		}
-		claims := utils.JwtGetMapClaims(jwtToken)
-		roleFromClaims := claims[roleKey]
-		if user.Role == roleFromClaims && roleFromClaims != role {
-			c.AbortWithStatusJSON(http.StatusForbidden, payload.NewUnauthorized(errors.New("unauthorized"), "You don't have permission to access this resource", "ErrNoPermission"))
-			return
-		}
 
+		if len(roles) > 0 {
+			claims := utils.JwtGetMapClaims(jwtToken)
+			roleFromClaims := claims[roleKey]
+
+			if user.Role == roleFromClaims && !slices.Contains(roles, user.Role) {
+				c.AbortWithStatusJSON(http.StatusForbidden, payload.ErrPermissionDenied(errors.New("You don't have permission to access this resource")))
+				return
+			}
+		}
 		c.Set(userContextKey, id)
+
 		c.Next()
 	}
 }

@@ -7,10 +7,12 @@ import (
 
 func CategoryToCategoryResponse(e *entity.Category) payload.CategoryResponse {
 	return payload.CategoryResponse{
-		ID:        e.ID,
-		Name:      e.Name,
-		CreatedAt: e.CreatedAt,
-		UpdatedAt: e.UpdatedAt,
+		ID:   e.ID,
+		Name: e.Name,
+		AuditTime: payload.AuditTime{
+			UpdatedAt: e.UpdatedAt,
+			CreatedAt: e.CreatedAt,
+		},
 	}
 }
 

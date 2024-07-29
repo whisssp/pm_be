@@ -42,3 +42,18 @@ type LoginRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=6,max=11"`
 }
+
+type UpdateOrderRequest struct {
+}
+
+type CreateOrderRequest struct {
+	OrderItems []OrderItemRequest `json:"orderItems"`
+	UserID     uint               `json:"userId"`
+	Status     string             `json:"status"`
+}
+
+type OrderItemRequest struct {
+	ProductID uint    `json:"productId"`
+	Quantity  int     `json:"quantity"`
+	Price     float64 `json:"price"`
+}

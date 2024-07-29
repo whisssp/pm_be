@@ -14,8 +14,10 @@ func ProductToProductResponse(product *entity.Product) payload.ProductResponse {
 		CategoryID:  product.CategoryID,
 		Stock:       product.Stock,
 		Image:       product.Image,
-		UpdatedAt:   product.UpdatedAt,
-		CreatedAt:   product.CreatedAt,
+		AuditTime: payload.AuditTime{
+			UpdatedAt: product.UpdatedAt,
+			CreatedAt: product.CreatedAt,
+		},
 	}
 }
 

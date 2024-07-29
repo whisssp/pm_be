@@ -40,3 +40,6 @@ type CategoryFilter struct {
 	UpdatedAtTo   *time.Time `form:"updatedAtTo"`
 	Deleted       bool       `form:"deleted"`
 }
+
+type OrderFilter struct {
+}

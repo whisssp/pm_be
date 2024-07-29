@@ -29,7 +29,7 @@ func NewCategoryUsecase(p *base.Persistence) CategoryUsecase {
 }
 
 func (categoryUsecase categoryUsecase) UpdateCategoryByID(id int64, updatePayload payload.UpdateCategoryRequest) (*payload.CategoryResponse, error) {
-	categoryRepo := categories.NewCategoryRepository(categoryUsecase.p)
+	categoryRepo := categories.NewCategoryRepository(categoryUsecase.p.GormDB)
 	cate, err := categoryRepo.GetCategoryByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -43,7 +43,7 @@ func (categoryUsecase categoryUsecase) UpdateCategoryByID(id int64, updatePayloa
 }
 
 func (categoryUsecase categoryUsecase) GetCategoryByID(id int64) (*payload.CategoryResponse, error) {
-	categoryRepo := categories.NewCategoryRepository(categoryUsecase.p)
+	categoryRepo := categories.NewCategoryRepository(categoryUsecase.p.GormDB)
 	cate, err := categoryRepo.GetCategoryByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -56,7 +56,7 @@ func (categoryUsecase categoryUsecase) GetCategoryByID(id int64) (*payload.Categ
 }
 
 func (categoryUsecase categoryUsecase) DeleteCategoryByID(id int64) error {
-	categoryRepo := categories.NewCategoryRepository(categoryUsecase.p)
+	categoryRepo := categories.NewCategoryRepository(categoryUsecase.p.GormDB)
 	cate, err := categoryRepo.GetCategoryByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -77,7 +77,7 @@ func (categoryUsecase categoryUsecase) CreateCategory(reqPayload *payload.Create
 	}
 
 	categoryEntity := mapper.CreateCatePayloadToCategory(reqPayload)
-	cateRepo := categories.NewCategoryRepository(categoryUsecase.p)
+	cateRepo := categories.NewCategoryRepository(categoryUsecase.p.GormDB)
 	err := cateRepo.Create(categoryEntity)
 	if err != nil {
 		fmt.Printf("error creating categories: %v", err)
@@ -88,7 +88,7 @@ func (categoryUsecase categoryUsecase) CreateCategory(reqPayload *payload.Create
 }
 
 func (categoryUsecase categoryUsecase) GetAllCategories(filter *entity.CategoryFilter, pagination *entity.Pagination) (*payload.ListCategoryResponses, error) {
-	cateRepo := categories.NewCategoryRepository(categoryUsecase.p)
+	cateRepo := categories.NewCategoryRepository(categoryUsecase.p.GormDB)
 	cates, err := cateRepo.GetAllCategories(filter, pagination)
 	if err != nil {
 		return nil, payload.ErrDB(err)

@@ -61,6 +61,10 @@ func JwtValidateToken(token string) (*jwt.Token, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
+		expFloat := JwtGetMapClaims(t)[expiredAtKey].(float64)
+		if time.Now().Compare(time.Unix(int64(expFloat), 0)) >= 1 {
+			return nil, fmt.Errorf("token expired")
+		}
 		return []byte(persistence.Jwt.SecretKey), nil
 	})
 }

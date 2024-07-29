@@ -44,6 +44,15 @@ func NewUnauthorized(root error, msg, key string) *AppError {
 	}
 }
 
+func NewPermissionDenied(root error, msg, key string) *AppError {
+	return &AppError{
+		StatusCode: http.StatusForbidden,
+		RootErr:    root,
+		Message:    msg,
+		Key:        key,
+	}
+}
+
 func (e *AppError) RootError() error {
 	if err, ok := e.RootErr.(*AppError); ok {
 		return err.RootError()
@@ -156,4 +165,8 @@ func ErrGenerateToken(err error) *AppError {
 
 func ErrInvalidToken(err error) *AppError {
 	return NewCustomError(err, err.Error(), "ErrInvalidToken")
+}
+
+func ErrPermissionDenied(err error) *AppError {
+	return NewCustomError(err, err.Error(), "ErrPermissionDenied")
 }

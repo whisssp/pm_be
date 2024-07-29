@@ -7,19 +7,18 @@ import (
 	"pm/domain/entity"
 	"pm/domain/repository"
 	"pm/infrastructure/controllers/payload"
-	"pm/infrastructure/persistences/base"
 )
 
 type CategoryRepository struct {
-	p *base.Persistence
+	db *gorm.DB
 }
 
-func NewCategoryRepository(p *base.Persistence) repository.CategoryRepository {
-	return CategoryRepository{p}
+func NewCategoryRepository(db *gorm.DB) repository.CategoryRepository {
+	return CategoryRepository{db}
 }
 
 func (c CategoryRepository) Create(category *entity.Category) error {
-	db := c.p.GormDB
+	db := c.db
 	if err := db.Create(category).Error; err != nil {
 		return payload.ErrDB(err)
 	}
@@ -27,7 +26,7 @@ func (c CategoryRepository) Create(category *entity.Category) error {
 }
 
 func (c CategoryRepository) Update(category *entity.Category) (*entity.Category, error) {
-	db := c.p.GormDB
+	db := c.db
 	if err := db.Updates(category).Error; err != nil {
 		return nil, payload.ErrDB(err)
 	}
@@ -36,7 +35,7 @@ func (c CategoryRepository) Update(category *entity.Category) (*entity.Category,
 
 func (c CategoryRepository) GetCategoryByID(id int64) (*entity.Category, error) {
 	var category entity.Category
-	db := c.p.GormDB
+	db := c.db
 	if err := db.Where("id = ?", id).First(&category).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, payload.ErrEntityNotFound("categories", err)
@@ -49,7 +48,7 @@ func (c CategoryRepository) GetCategoryByID(id int64) (*entity.Category, error) 
 func (c CategoryRepository) GetAllCategories(filter *entity.CategoryFilter, pagination *entity.Pagination) ([]entity.Category, error) {
 	categories := make([]entity.Category, 0)
 	var totalRows int64
-	db := c.p.GormDB
+	db := c.db
 	db = db.Model(&entity.Category{}).Count(&totalRows)
 	if filter != nil {
 		db = db.Scopes(applyFilter(filter)).Count(&totalRows)
@@ -63,7 +62,7 @@ func (c CategoryRepository) GetAllCategories(filter *entity.CategoryFilter, pagi
 }
 
 func (c CategoryRepository) DeleteCategory(category *entity.Category) error {
-	db := c.p.GormDB
+	db := c.db
 	if err := db.Delete(category).Error; err != nil {
 		return payload.ErrDB(err)
 	}

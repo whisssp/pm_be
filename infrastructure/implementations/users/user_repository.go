@@ -6,7 +6,6 @@ import (
 	"pm/domain/entity"
 	"pm/domain/repository"
 	"pm/infrastructure/controllers/payload"
-	"pm/infrastructure/persistences/base"
 )
 
 const (
@@ -14,17 +13,17 @@ const (
 )
 
 type UserRepository struct {
-	p *base.Persistence
+	db *gorm.DB
 }
 
-func NewUserRepository(p *base.Persistence) repository.UserRepository {
-	return UserRepository{p}
+func NewUserRepository(db *gorm.DB) repository.UserRepository {
+	return UserRepository{db}
 }
 
 func (u UserRepository) GetUserByEmail(email string) (*entity.User, error) {
-	db := u.p.GormDB
+	db := u.db
 	var user entity.User
-	if err := db.Where("email = ?", email).Find(&user).Error; err != nil {
+	if err := db.Omit("Orders").Where("email = ?", email).Find(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, payload.ErrEntityNotFound(entityName, err)
 		}
@@ -34,7 +33,7 @@ func (u UserRepository) GetUserByEmail(email string) (*entity.User, error) {
 }
 
 func (u UserRepository) Create(user *entity.User) error {
-	db := u.p.GormDB
+	db := u.db
 	if err := db.Create(user).Error; err != nil {
 		return payload.ErrDB(err)
 	}
@@ -52,7 +51,7 @@ func (u UserRepository) GetAllUsers() ([]entity.User, error) {
 }
 
 func (u UserRepository) GetUserByID(id int64) (*entity.User, error) {
-	db := u.p.GormDB
+	db := u.db
 	var user entity.User
 	if err := db.Where("id = ?", id).Find(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

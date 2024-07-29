@@ -9,6 +9,7 @@ import (
 	"log"
 	_ "pm/docs"
 	"pm/infrastructure/controllers/handlers"
+	"pm/infrastructure/controllers/middleware"
 	"pm/infrastructure/jobs"
 	"pm/infrastructure/persistences/base"
 	"pm/utils"
@@ -41,7 +42,7 @@ func (s *Server) Run() {
 		fmt.Println("Error adding cron job:", err)
 	}
 
-	//go c.Run()
+	go c.Run()
 
 	err = router.Run(fmt.Sprintf(":%s", s.Port))
 	if err != nil {
@@ -55,12 +56,15 @@ func (s *Server) SetUpRoutes(router *gin.Engine) {
 	categoryHandler := handlers.NewCategoryHandler(s.Persistence)
 	fileHandler := handlers.NewFileHandler(s.Persistence)
 	userHandler := handlers.NewUserHandler(s.Persistence)
+	orderHandler := handlers.NewOrderHandler(s.Persistence)
 
 	productRoute := NewProductRoutes(s.Persistence, productHandler)
 	categoryRoute := NewCategoryRoutes(s.Persistence, categoryHandler)
 	fileRoute := NewFileRoutes(s.Persistence, fileHandler)
 	userRoute := NewUserRoutes(s.Persistence, userHandler)
+	orderRoute := NewOrderRoutes(s.Persistence, orderHandler)
 
+	router.Use(middleware.ErrorHandlingMiddleware())
 	v1 := router.Group("/api/v1")
 
 	v1.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -69,6 +73,7 @@ func (s *Server) SetUpRoutes(router *gin.Engine) {
 	categoryRoute.RegisterRoutes(v1)
 	fileRoute.RegisterRoutes(v1)
 	userRoute.RegisterRoutes(v1)
+	orderRoute.RegisterRoutes(v1)
 }
 
 func InitHelpers(p *base.Persistence) {
