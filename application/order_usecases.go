@@ -2,13 +2,17 @@ package application
 
 import (
 	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"math"
 	"pm/domain/entity"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/implementations/orders"
+	"pm/infrastructure/jobs"
 	"pm/infrastructure/mapper"
 	"pm/infrastructure/persistences/base"
+	"pm/utils"
+	"strconv"
 )
 
 const orderEntity string = "orders"
@@ -31,11 +35,35 @@ func NewOrderUsecase(p *base.Persistence) OrderUsecase {
 
 func (o orderUsecase) CreateOrder(reqPayload *payload.CreateOrderRequest) error {
 	order := mapper.CreateOrderPayloadToOrder(reqPayload)
-	orderRepo := orders.NewOrderRepository(o.p.GormDB)
+	prods := make([]entity.Product, len(order.OrderItems))
 
+	// check product is still available stock must be greater or equal 0 after stock - quantity from order item
+	for i, e := range order.OrderItems {
+		var p entity.Product
+		utils.RedisGetHashGenericKey(redisHashKey, strconv.Itoa(int(e.ProductID)), &p)
+		isAvailable := (p.Stock - int64(e.Quantity)) >= 0
+		if !isAvailable {
+			return payload.ErrInvalidRequest(fmt.Errorf("product: %v is not available, please check again", e.ProductID))
+		}
+		p.Stock = p.Stock - int64(e.Quantity)
+		prods[i] = p
+	}
+
+	orderRepo := orders.NewOrderRepository(o.p.GormDB)
 	if err := orderRepo.Create(&order); err != nil {
 		return payload.ErrDB(err)
 	}
+
+	go func() {
+		fmt.Println("setting new product on redis")
+		for _, e := range prods {
+			err := utils.RedisSetHashGenericKey(redisHashKey, strconv.Itoa(int(e.ID)), e, o.p.Redis.KeyExpirationTime)
+			if err != nil {
+				fmt.Printf("error when updating product stock to redis: %v", prods)
+				go jobs.LoadProductToRedis(o.p)
+			}
+		}
+	}()
 	return nil
 }
 

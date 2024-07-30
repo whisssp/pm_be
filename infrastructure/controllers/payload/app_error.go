@@ -8,20 +8,22 @@ import (
 )
 
 type AppError struct {
-	StatusCode int    `json:"status_code"`
-	RootErr    error  `json:"-"`
-	Message    string `json:"message"`
-	Log        string `json:"-"`
-	Key        string `json:"-"`
+	StatusCode int         `json:"status_code"`
+	RootErr    error       `json:"-"`
+	Message    string      `json:"message"`
+	Log        string      `json:"-"`
+	Key        string      `json:"-"`
+	Data       interface{} `json:"data"`
 }
 
 func NewFullErrorResponse(statusCode int, root error, msg, log, key string) *AppError {
 	return &AppError{
 		StatusCode: statusCode,
 		RootErr:    root,
-		Message:    fmt.Sprintf("Log: %s\nMessage:%s", log, msg),
+		Message:    log,
 		Log:        log,
 		Key:        key,
+		Data:       nil,
 	}
 }
 
@@ -29,9 +31,10 @@ func NewErrorResponse(root error, msg, log, key string) *AppError {
 	return &AppError{
 		StatusCode: http.StatusBadRequest,
 		RootErr:    root,
-		Message:    fmt.Sprintf("Log: %s\nMessage:%s", log, msg),
+		Message:    log,
 		Log:        log,
 		Key:        key,
+		Data:       nil,
 	}
 }
 
@@ -41,6 +44,7 @@ func NewUnauthorized(root error, msg, key string) *AppError {
 		RootErr:    root,
 		Message:    msg,
 		Key:        key,
+		Data:       nil,
 	}
 }
 
@@ -50,6 +54,7 @@ func NewPermissionDenied(root error, msg, key string) *AppError {
 		RootErr:    root,
 		Message:    msg,
 		Key:        key,
+		Data:       nil,
 	}
 }
 

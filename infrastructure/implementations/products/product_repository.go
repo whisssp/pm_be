@@ -43,12 +43,14 @@ func (prodRepo *ProductRepository) Update(product *entity.Product) (*entity.Prod
 
 func (prodRepo *ProductRepository) UpdateMultiProduct(products ...entity.Product) ([]entity.Product, error) {
 	tx := prodRepo.db.Begin()
-	if err := tx.Updates(&products).Error; err != nil {
-		tx.Rollback()
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, payload.ErrEntityNotFound(entityName, err)
+	for index, p := range products {
+		if err := tx.Model(&products[index]).Update("stock", p.Stock).Error; err != nil {
+			tx.Rollback()
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, payload.ErrEntityNotFound(entityName, err)
+			}
+			return nil, payload.ErrDB(err)
 		}
-		return nil, payload.ErrDB(err)
 	}
 
 	if err := tx.Commit().Error; err != nil {

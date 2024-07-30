@@ -21,18 +21,19 @@ func (o OrderRepository) Create(order *entity.Order) error {
 	tx := o.db.Begin()
 	productRepo := products.NewProductRepository(tx)
 	prods, err := productRepo.GetStockByProductIDs(order.OrderItems...)
+	//prodPointers := make([]*entity.Product, len(prods))
 	if err != nil {
 		tx.Rollback()
 		return payload.ErrDB(err)
 	}
 
 	for index, v := range prods {
-		quantity := v.Stock - int64(order.OrderItems[index].Quantity)
-		if quantity < 0 {
+		v.Stock = v.Stock - int64(order.OrderItems[index].Quantity)
+		if v.Stock < 0 {
 			tx.Rollback()
 			return payload.ErrInvalidRequest(fmt.Errorf("the product %v is out of stock", v.ID))
 		}
-		v.Stock = quantity
+		prods[index] = v
 	}
 
 	if err := tx.Create(&order).Error; err != nil {
@@ -45,10 +46,13 @@ func (o OrderRepository) Create(order *entity.Order) error {
 	}
 
 	go func() {
-		prods, err = productRepo.UpdateMultiProduct(prods...)
+		fmt.Println("Running goroutine update products")
+		prodRepo := products.NewProductRepository(o.db)
+		prods, err = prodRepo.UpdateMultiProduct(prods...)
 		if err != nil {
 			fmt.Printf("error updating quantity product by goroutine")
 		}
+		fmt.Printf("\nafter updating %v", prods)
 	}()
 	return nil
 }
