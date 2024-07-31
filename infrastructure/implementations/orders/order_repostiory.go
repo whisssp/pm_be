@@ -2,26 +2,32 @@ package orders
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"pm/domain/entity"
 	"pm/domain/repository"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/implementations/products"
+	"pm/infrastructure/persistences/base"
 )
 
 type OrderRepository struct {
 	db *gorm.DB
+	p  *base.Persistence
+	c  *gin.Context
 }
 
-func NewOrderRepository(db *gorm.DB) repository.OrderRepository {
-	return OrderRepository{db}
+func NewOrderRepository(c *gin.Context, p *base.Persistence, db *gorm.DB) repository.OrderRepository {
+	return OrderRepository{db, p, c}
 }
 
 func (o OrderRepository) Create(order *entity.Order) error {
+	span := o.p.Logger.Start(o.c, "CREATE_ORDER_DATABASE", o.p.Logger.SetContextWithSpanFunc())
+	defer span.End()
 	tx := o.db.Begin()
-	productRepo := products.NewProductRepository(tx)
+	productRepo := products.NewProductRepository(o.c, o.p, tx)
+	// Get product by product id in order item
 	prods, err := productRepo.GetStockByProductIDs(order.OrderItems...)
-	//prodPointers := make([]*entity.Product, len(prods))
 	if err != nil {
 		tx.Rollback()
 		return payload.ErrDB(err)
@@ -30,30 +36,39 @@ func (o OrderRepository) Create(order *entity.Order) error {
 	for index, v := range prods {
 		v.Stock = v.Stock - int64(order.OrderItems[index].Quantity)
 		if v.Stock < 0 {
+			errS := fmt.Errorf("the product %v is out of stock", v.ID)
+			o.p.Logger.Error("CREATE_ORDER_DATABASE_FAILED", map[string]interface{}{"message": errS})
 			tx.Rollback()
-			return payload.ErrInvalidRequest(fmt.Errorf("the product %v is out of stock", v.ID))
+			return payload.ErrInvalidRequest(errS)
 		}
 		prods[index] = v
 	}
 
+	o.p.Logger.Info("CREATE_ORDER_DATABASE", map[string]interface{}{"data": order})
 	if err := tx.Create(&order).Error; err != nil {
+		o.p.Logger.Error("CREATE_ORDER_DATABASE_FAILED", map[string]interface{}{"message": err.Error()})
 		tx.Rollback()
 		return err
 	}
 
 	if err := tx.Commit().Error; err != nil {
+		o.p.Logger.Error("CREATE_ORDER_DATABASE_FAILED", map[string]interface{}{"message": err.Error()})
 		return err
 	}
 
 	go func() {
 		fmt.Println("Running goroutine update products")
-		prodRepo := products.NewProductRepository(o.db)
+		o.p.Logger.Info("GOROUTINE_UPDATE_QUANTITY_PRODUCT", map[string]interface{}{"products": prods})
+		prodRepo := products.NewProductRepository(o.c, o.p, o.db)
 		prods, err = prodRepo.UpdateMultiProduct(prods...)
 		if err != nil {
+			o.p.Logger.Error("GOROUTINE_UPDATE_QUANTITY_PRODUCT_FAILED", map[string]interface{}{"products": prods, "message": err.Error()})
 			fmt.Printf("error updating quantity product by goroutine")
 		}
-		fmt.Printf("\nafter updating %v", prods)
+		o.p.Logger.Error("GOROUTINE_UPDATE_QUANTITY_PRODUCT_SUCCESSFULLY", map[string]interface{}{"products": prods})
 	}()
+
+	o.p.Logger.Info("CREATE_ORDER_DATABASE_SUCCESSFULLY", map[string]interface{}{"data": order})
 	return nil
 }
 

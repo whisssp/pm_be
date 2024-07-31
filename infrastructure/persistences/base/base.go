@@ -7,7 +7,9 @@ import (
 	storage_go "github.com/supabase-community/storage-go"
 	"gorm.io/gorm"
 	"pm/infrastructure/config"
+	"pm/infrastructure/implementations/loggers"
 	db2 "pm/infrastructure/persistences/base/db"
+	"pm/infrastructure/persistences/base/logger"
 	rd2 "pm/infrastructure/persistences/base/redis"
 	"pm/infrastructure/persistences/base/supabase"
 	"time"
@@ -18,17 +20,12 @@ type Persistence struct {
 	GormDB          *gorm.DB
 	Redis           RedisPersistence
 	SupabaseStorage *storage_go.Client
-	Jwt             Jwt
+	Logger          *loggers.LoggerRepo
 }
 
 type RedisPersistence struct {
 	RedisDB           *redis.Client
 	KeyExpirationTime time.Duration
-}
-
-type Jwt struct {
-	SecretKey       string
-	TokenExpiration time.Duration
 }
 
 func InitPersistence(appConfig *config.AppConfig) *Persistence {
@@ -40,10 +37,6 @@ func InitPersistence(appConfig *config.AppConfig) *Persistence {
 		},
 		SupabaseStorage: nil,
 		Ctx:             context.Background(),
-		Jwt: Jwt{
-			SecretKey:       appConfig.JwtConfig.SecretKey,
-			TokenExpiration: appConfig.JwtConfig.TokenExpiration,
-		},
 	}
 	gormDBConfig := appConfig.DatabaseConfig
 	gormDB, err := db2.SetupDatabase(db2.GetDSN(gormDBConfig.Username, gormDBConfig.Password, gormDBConfig.Domain, gormDBConfig.Port, gormDBConfig.DBName))
@@ -64,5 +57,10 @@ func InitPersistence(appConfig *config.AppConfig) *Persistence {
 	}
 	persistence.SupabaseStorage = supabaseStorage.StorageClient
 
+	logger, err := logger.NewLogger()
+	if err != nil {
+		fmt.Println("error initializing logger", err)
+	}
+	persistence.Logger = logger
 	return persistence
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"pm/domain/entity"
+	"pm/infrastructure/config"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/persistences/base"
 	"strconv"
@@ -19,13 +20,19 @@ const (
 	subjectKey          = "subject"
 )
 
-func InitJwtHelper(p *base.Persistence) {
+var jwtSecretKey string = ""
+var jwtTokenExpiration time.Duration = 10 * time.Minute
+
+func InitJwtHelper(p *base.Persistence, jwtConfig config.JwtConfig) {
+	jwtSecretKey = jwtConfig.SecretKey
+	jwtTokenExpiration = jwtConfig.TokenExpiration
 	persistence = p
 }
 
 func JwtGenerateJwtToken(user *entity.User) (string, error) {
-	expiration := time.Now().Add(persistence.Jwt.TokenExpiration).Unix()
-	arrBytesKey := []byte(persistence.Jwt.SecretKey)
+	expiration := time.Now().Add(10 * 24 * time.Hour).Unix()
+	//expiration := time.Now().Add(jwtTokenExpiration).Unix()
+	arrBytesKey := []byte(jwtSecretKey)
 	claims := jwt.MapClaims{
 		subjectKey: strconv.Itoa(int(user.ID)),
 		//userIDKey:    user.ID,
@@ -65,6 +72,6 @@ func JwtValidateToken(token string) (*jwt.Token, error) {
 		if time.Now().Compare(time.Unix(int64(expFloat), 0)) >= 1 {
 			return nil, fmt.Errorf("token expired")
 		}
-		return []byte(persistence.Jwt.SecretKey), nil
+		return []byte(jwtSecretKey), nil
 	})
 }

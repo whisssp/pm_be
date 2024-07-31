@@ -28,18 +28,25 @@ func NewUserHandler(p *base.Persistence) *UserHandler {
 // @Failure 			500 	{object} payload.AppError{}
 // @Router				/users/authenticate [post]
 func (h *UserHandler) HandleAuthenticate(c *gin.Context) {
+	span := h.p.Logger.Start(c, "handlers/HandleAuthenticate")
+	h.p.Logger.SetContextWithSpan(span)
+	defer h.p.Logger.End()
 	var loginRequest payload.LoginRequest
 	if err := c.ShouldBindJSON(&loginRequest); err != nil {
 		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
 		return
 	}
 
-	response, err := h.userUsecase.Authenticate(&loginRequest)
+	response, err := h.userUsecase.Authenticate(c, &loginRequest)
 	if err != nil {
+		h.p.Logger.Error(err.Error(), map[string]interface{}{
+			"message": err.Error(),
+		})
 		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
 		return
 	}
 
+	h.p.Logger.Info("handlers/HandleAuthenticate", map[string]interface{}{"token": response.Token})
 	c.JSON(http.StatusOK, payload.SuccessResponse(response, ""))
 }
 
@@ -59,7 +66,7 @@ func (h *UserHandler) HandleCreateUser(c *gin.Context) {
 		return
 	}
 
-	if err := h.userUsecase.CreateUser(&userRequest); err != nil {
+	if err := h.userUsecase.CreateUser(c, &userRequest); err != nil {
 		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
 		return
 	}

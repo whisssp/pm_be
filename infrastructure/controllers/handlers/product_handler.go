@@ -48,7 +48,7 @@ func (handler *ProductHandler) HandleCreateProduct(c *gin.Context) {
 		return
 	}
 
-	if err := handler.usecase.CreateProduct(&createProdReq); err != nil {
+	if err := handler.usecase.CreateProduct(c, &createProdReq); err != nil {
 		utils.HttpErrorResponse(c, err)
 		return
 	}
@@ -83,7 +83,7 @@ func (handler *ProductHandler) HandleGetAllProducts(c *gin.Context) {
 		return
 	}
 
-	prods, err := handler.usecase.GetAllProducts(&filter, pagination)
+	prods, err := handler.usecase.GetAllProducts(c, &filter, pagination)
 	if err != nil {
 		utils.HttpErrorResponse(c, err)
 		return
@@ -111,7 +111,7 @@ func (handler *ProductHandler) HandleGetProductByID(c *gin.Context) {
 		return
 	}
 
-	prod, err := handler.usecase.GetProductByID(id)
+	prod, err := handler.usecase.GetProductByID(c, id)
 	if err != nil {
 		utils.HttpErrorResponse(c, err)
 		return
@@ -139,7 +139,7 @@ func (handler *ProductHandler) HandleDeleteProductByID(c *gin.Context) {
 		return
 	}
 
-	err := handler.usecase.DeleteProductByID(id)
+	err := handler.usecase.DeleteProductByID(c, id)
 	if err != nil {
 		utils.HttpErrorResponse(c, err)
 		return
@@ -174,7 +174,7 @@ func (handler *ProductHandler) HandleUpdateProductByID(c *gin.Context) {
 		return
 	}
 
-	prodUpdated, err := handler.usecase.UpdateProductByID(id, &updateProductReq)
+	prodUpdated, err := handler.usecase.UpdateProductByID(c, id, &updateProductReq)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			utils.HttpNotFoundResponse(c, err)

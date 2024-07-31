@@ -26,8 +26,12 @@ func NewOrderHandler(p *base.Persistence) *OrderHandler {
 }
 
 func (h *OrderHandler) HandleCreateOrder(c *gin.Context) {
+	span := h.p.Logger.Start(c, "handlers/HandleCreateOrder", h.p.Logger.SetContextWithSpanFunc())
+	defer span.End()
+
 	var requestPayload payload.CreateOrderRequest
 	if err := c.ShouldBindJSON(&requestPayload); err != nil {
+		h.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"data": err.Error()})
 		c.Error(err)
 		return
 	}
@@ -52,21 +56,25 @@ func (h *OrderHandler) HandleCreateOrder(c *gin.Context) {
 	case string:
 		id, err = strconv.ParseInt(v, 10, 64)
 		if err != nil {
-			utils.HttpErrorResponse(c, fmt.Errorf("error parsing string to int64: %v", err))
+			h.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
+			utils.HttpErrorResponse(c, payload.ErrInternal(fmt.Errorf("error cast from any to int64")))
 			return
 		}
 	default:
-		utils.HttpErrorResponse(c, fmt.Errorf("error cast from any to int64"))
+		h.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
+		utils.HttpErrorResponse(c, payload.ErrInternal(fmt.Errorf("error cast from any to int64")))
 		return
 	}
 
 	requestPayload.UserID = uint(id)
 	requestPayload.Status = "WAITING_FOR_PAYMENT"
-	if err := h.usecase.CreateOrder(&requestPayload); err != nil {
+	if err := h.usecase.CreateOrder(c, &requestPayload); err != nil {
+		h.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"data": err.Error()})
 		c.Error(err)
 		return
 	}
 	utils.HttpSuccessResponse(c, nil, "")
+	h.p.Logger.Info("CREATE_ORDER_SUCCESSFULLY", map[string]interface{}{})
 }
 
 func (h *OrderHandler) HandleUpdateOrderByID(c *gin.Context) {
@@ -83,7 +91,7 @@ func (h *OrderHandler) HandleGetOrderByID(c *gin.Context) {
 		c.Error(payload.ErrParamRequired(errors.New("param [id] is required")))
 		return
 	}
-	order, err := h.usecase.GetOrderByID(orderId)
+	order, err := h.usecase.GetOrderByID(c, orderId)
 	if err != nil {
 		c.Error(err)
 		return

@@ -1,6 +1,8 @@
 package repository
 
-import "pm/domain/entity"
+import (
+	"pm/domain/entity"
+)
 
 type OrderRepository interface {
 	Create(*entity.Order) error

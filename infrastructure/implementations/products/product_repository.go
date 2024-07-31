@@ -2,11 +2,13 @@ package products
 
 import (
 	"errors"
+	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"math"
 	"pm/domain/entity"
 	"pm/domain/repository"
 	"pm/infrastructure/controllers/payload"
+	"pm/infrastructure/persistences/base"
 )
 
 const (
@@ -15,10 +17,19 @@ const (
 
 type ProductRepository struct {
 	db *gorm.DB
+	p  *base.Persistence
+	c  *gin.Context
 }
 
-func NewProductRepository(db *gorm.DB) repository.ProductRepository {
-	return &ProductRepository{db}
+func NewProductRepository(c *gin.Context, p *base.Persistence, db *gorm.DB) repository.ProductRepository {
+	if c == nil {
+		return &ProductRepository{
+			db: db,
+			p:  p,
+			c:  nil,
+		}
+	}
+	return &ProductRepository{db, p, c}
 }
 
 func (prodRepo *ProductRepository) Create(product *entity.Product) error {
@@ -42,9 +53,14 @@ func (prodRepo *ProductRepository) Update(product *entity.Product) (*entity.Prod
 }
 
 func (prodRepo *ProductRepository) UpdateMultiProduct(products ...entity.Product) ([]entity.Product, error) {
+	span := prodRepo.p.Logger.Start(prodRepo.c, "UPDATE_PRODUCT_STOCK")
+	defer span.End()
+
 	tx := prodRepo.db.Begin()
+	prodRepo.p.Logger.Info("UPDATE_PRODUCT_STOCK", map[string]interface{}{"products": products})
 	for index, p := range products {
 		if err := tx.Model(&products[index]).Update("stock", p.Stock).Error; err != nil {
+			prodRepo.p.Logger.Error("UPDATE_PRODUCT_STOCK_FAILED", map[string]interface{}{"product": p, "message": err.Error()})
 			tx.Rollback()
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, payload.ErrEntityNotFound(entityName, err)
@@ -54,8 +70,10 @@ func (prodRepo *ProductRepository) UpdateMultiProduct(products ...entity.Product
 	}
 
 	if err := tx.Commit().Error; err != nil {
+		prodRepo.p.Logger.Error("UPDATE_PRODUCT_STOCK_FAILED", map[string]interface{}{"products": products, "message": err.Error()})
 		return nil, payload.ErrDB(err)
 	}
+	prodRepo.p.Logger.Error("UPDATE_PRODUCT_STOCK_SUCCESSFULLY", map[string]interface{}{"products": products})
 	return products, nil
 }
 
@@ -106,16 +124,22 @@ func (prodRepo *ProductRepository) DeleteProduct(product *entity.Product) error 
 }
 
 func (prodRepo *ProductRepository) GetStockByProductIDs(orderItems ...entity.OrderItem) ([]entity.Product, error) {
+	span := prodRepo.p.Logger.Start(prodRepo.c, "GET_PRODUCT_ID_FROM_ORDER_ITEM")
+	defer span.End()
+
 	keyArr := make([]uint, len(orderItems))
 	for i, _ := range keyArr {
 		keyArr[i] = orderItems[i].ProductID
 	}
-
+	prodRepo.p.Logger.Info("GET_PRODUCT", map[string]interface{}{"productIds": keyArr})
 	products := make([]entity.Product, len(orderItems))
 	err := prodRepo.db.Where("id IN ?", keyArr).Find(&products)
 	if err.Error != nil {
-		return nil, err.Error
+		errD := err.Error
+		prodRepo.p.Logger.Error("GET_PRODUCT_ERROR", map[string]interface{}{"products": products, "message": errD.Error()})
+		return nil, errD
 	}
+	prodRepo.p.Logger.Info("GET_PRODUCT_SUCCESSFULLY", map[string]interface{}{"products": products})
 	return products, nil
 }
 

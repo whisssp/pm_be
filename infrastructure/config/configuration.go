@@ -71,6 +71,8 @@ type AppConfig struct {
 	JwtConfig             JwtConfig
 }
 
+var Configs, _ = LoadConfig()
+
 func LoadConfig() (*AppConfig, error) {
 	err := godotenv.Load()
 	if err != nil {
@@ -78,31 +80,31 @@ func LoadConfig() (*AppConfig, error) {
 	}
 	config := &AppConfig{
 		Server: Server{
-			Port: getEnv("PORT", "8080"),
-			Host: getEnv("HOST", "localhost"),
+			Port: GetEnv("PORT", "8080"),
+			Host: GetEnv("HOST", "localhost"),
 		},
 		DatabaseConfig: DatabaseConfig{
-			Port:     getEnv("DB_PORT", "5432"),
-			DBName:   getEnv("DB_NAME", "postgres"),
-			Domain:   getEnv("DB_HOST", "vital-fawn-7347.6xw.aws-ap-southeast-1.cockroachlabs.cloud"),
-			Password: getEnv("DB_PASSWORD", "_oFbv9Yh03Ads4QzUYtiZg"),
-			Username: getEnv("DB_USER", "whisper"),
-			Url:      getEnv("DB_URL", "postgresql://whisper:_oFbv9Yh03Ads4QzUYtiZg@vital-fawn-7347.6xw.aws-ap-southeast-1.cockroachlabs.cloud:26257/postgres?sslmode=verify-full"),
+			Port:     GetEnv("DB_PORT", "5432"),
+			DBName:   GetEnv("DB_NAME", "postgres"),
+			Domain:   GetEnv("DB_HOST", "vital-fawn-7347.6xw.aws-ap-southeast-1.cockroachlabs.cloud"),
+			Password: GetEnv("DB_PASSWORD", "_oFbv9Yh03Ads4QzUYtiZg"),
+			Username: GetEnv("DB_USER", "whisper"),
+			Url:      GetEnv("DB_URL", "postgresql://whisper:_oFbv9Yh03Ads4QzUYtiZg@vital-fawn-7347.6xw.aws-ap-southeast-1.cockroachlabs.cloud:26257/postgres?sslmode=verify-full"),
 		},
 		RedisConfig: RedisConfig{
-			Port:           getEnv("REDIS_PORT", "6379"),
-			Password:       getEnv("REDIS_PASSWORD", "6379"),
-			DBName:         getEnvAsInt("REDIS_DB", 0),
+			Port:           GetEnv("REDIS_PORT", "6379"),
+			Password:       GetEnv("REDIS_PASSWORD", "6379"),
+			DBName:         GetEnvAsInt("REDIS_DB", 0),
 			ExpirationTime: GetEnvAsDuration("REDIS_KEY_EXPIRATION", 10*time.Minute),
 		},
 		SupabaseStorageConfig: SupabaseStorage{
-			Url:    getEnv("SUPABASE_STORAGE_URL", "https://drqbnazyxxjvqapzcmkz.supabase.co/storage/v1"),
-			Key:    getEnv("SUPABASE_STORAGE_KEY", "Mat key"),
+			Url:    GetEnv("SUPABASE_STORAGE_URL", "https://drqbnazyxxjvqapzcmkz.supabase.co/storage/v1"),
+			Key:    GetEnv("SUPABASE_STORAGE_KEY", "Mat key"),
 			Header: "",
 		},
 		JwtConfig: JwtConfig{
-			SecretKey:       getEnv("JWT_SECRECT_KEY", "timthujwtkeyodaudichunobaymattieuroicailmeeeeeeeeeeeeeeeeeee"),
-			TokenExpiration: GetEnvAsDuration("JWT_TOKEN_EXPIRATION", 10*time.Minute),
+			SecretKey:       GetEnv("JWT_SECRET_KEY", "https://drqbnazyxxjvqapzcmkz.supabase.co/storage/v1"),
+			TokenExpiration: GetEnvAsDuration("JWT_TOKEN_EXPIRATION", 1*time.Minute),
 		},
 	}
 
@@ -122,14 +124,14 @@ func LoadConfig() (*AppConfig, error) {
 	return config, nil
 }
 
-func getEnv(key, fallback string) string {
+func GetEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
 		return value
 	}
 	return fallback
 }
 
-func getEnvAsInt(key string, fallback int64) int64 {
+func GetEnvAsInt(key string, fallback int64) int64 {
 	if value, ok := os.LookupEnv(key); ok {
 		i, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {

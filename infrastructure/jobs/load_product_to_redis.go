@@ -11,7 +11,7 @@ import (
 const redisProductKey = "products"
 
 func LoadProductToRedis(p *base.Persistence) {
-	productGormRepo := products.NewProductRepository(p.GormDB)
+	productGormRepo := products.NewProductRepository(nil, p, p.GormDB)
 	prods, err := productGormRepo.GetAllProducts(nil, nil)
 	if err != nil {
 		fmt.Println("error getting products from database", err)

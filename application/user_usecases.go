@@ -2,6 +2,7 @@ package application
 
 import (
 	"errors"
+	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/implementations/users"
@@ -11,12 +12,12 @@ import (
 )
 
 type UserUsecase interface {
-	CreateUser(request *payload.UserRequest) error
+	CreateUser(*gin.Context, *payload.UserRequest) error
 	GetUserByID(id int64) (*payload.UserResponse, error)
 	GetAllUsers() ([]payload.ListUserResponses, error)
 	UpdateUserByID(request *payload.UserRequest) (*payload.UserResponse, error)
 	DeleteUserByID(id int64) error
-	Authenticate(*payload.LoginRequest) (*payload.AuthResponse, error)
+	Authenticate(*gin.Context, *payload.LoginRequest) (*payload.AuthResponse, error)
 }
 
 type userUsecase struct {
@@ -27,7 +28,9 @@ func NewUserUsecase(p *base.Persistence) UserUsecase {
 	return userUsecase{p}
 }
 
-func (u userUsecase) Authenticate(request *payload.LoginRequest) (*payload.AuthResponse, error) {
+func (u userUsecase) Authenticate(c *gin.Context, request *payload.LoginRequest) (*payload.AuthResponse, error) {
+	//channels := []string{"Honeycomb"}
+
 	if err := utils.ValidateReqPayload(request); err != nil {
 		return nil, payload.ErrInvalidRequest(err)
 	}
@@ -49,11 +52,12 @@ func (u userUsecase) Authenticate(request *payload.LoginRequest) (*payload.AuthR
 	if err != nil {
 		return nil, payload.ErrGenerateToken(err)
 	}
+
 	authResponse := payload.AuthResponse{Token: token}
 	return &authResponse, nil
 }
 
-func (u userUsecase) CreateUser(request *payload.UserRequest) error {
+func (u userUsecase) CreateUser(c *gin.Context, request *payload.UserRequest) error {
 	if err := utils.ValidateReqPayload(request); err != nil {
 		return payload.ErrInvalidRequest(err)
 	}

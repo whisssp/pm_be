@@ -3,6 +3,7 @@ package application
 import (
 	"errors"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"math"
 	"pm/domain/entity"
@@ -21,11 +22,11 @@ const (
 )
 
 type ProductUsecase interface {
-	CreateProduct(reqPayload *payload.CreateProductRequest) error
-	GetAllProducts(filter *entity.ProductFilter, pagination *entity.Pagination) (*payload.ListProductResponses, error)
-	GetProductByID(id int64) (*payload.ProductResponse, error)
-	DeleteProductByID(id int64) error
-	UpdateProductByID(id int64, updatePayload *payload.UpdateProductRequest) (*payload.ProductResponse, error)
+	CreateProduct(*gin.Context, *payload.CreateProductRequest) error
+	GetAllProducts(*gin.Context, *entity.ProductFilter, *entity.Pagination) (*payload.ListProductResponses, error)
+	GetProductByID(*gin.Context, int64) (*payload.ProductResponse, error)
+	DeleteProductByID(*gin.Context, int64) error
+	UpdateProductByID(*gin.Context, int64, *payload.UpdateProductRequest) (*payload.ProductResponse, error)
 }
 type productUsecase struct {
 	p *base.Persistence
@@ -35,14 +36,14 @@ func NewProductUsecase(p *base.Persistence) ProductUsecase {
 	return productUsecase{p}
 }
 
-func (p productUsecase) CreateProduct(reqPayload *payload.CreateProductRequest) error {
+func (p productUsecase) CreateProduct(c *gin.Context, reqPayload *payload.CreateProductRequest) error {
 	if err := utils.ValidateReqPayload(reqPayload); err != nil {
 		fmt.Printf("error validating product: %v", err)
 		return payload.ErrValidateFailed(err)
 	}
 
 	prod := mapper.PayloadToProduct(reqPayload)
-	productRepo := products.NewProductRepository(p.p.GormDB)
+	productRepo := products.NewProductRepository(c, p.p, p.p.GormDB)
 	err := productRepo.Create(prod)
 	if err != nil {
 		fmt.Printf("error creating product: %v", err)
@@ -65,9 +66,9 @@ func (p productUsecase) CreateProduct(reqPayload *payload.CreateProductRequest) 
 	return nil
 }
 
-func (p productUsecase) GetAllProducts(filter *entity.ProductFilter, pagination *entity.Pagination) (*payload.ListProductResponses, error) {
+func (p productUsecase) GetAllProducts(c *gin.Context, filter *entity.ProductFilter, pagination *entity.Pagination) (*payload.ListProductResponses, error) {
 	var listProdResponse payload.ListProductResponses
-	productRepo := products.NewProductRepository(p.p.GormDB)
+	productRepo := products.NewProductRepository(c, p.p, p.p.GormDB)
 	prods := make([]entity.Product, 0)
 	if filter.IsNil() == true {
 		productsMap := make(map[string]entity.Product)
@@ -96,10 +97,10 @@ func (p productUsecase) GetAllProducts(filter *entity.ProductFilter, pagination 
 	return &listProdResponse, nil
 }
 
-func (p productUsecase) GetProductByID(id int64) (*payload.ProductResponse, error) {
+func (p productUsecase) GetProductByID(c *gin.Context, id int64) (*payload.ProductResponse, error) {
 	var prod entity.Product
 	utils.RedisGetHashGenericKey(redisHashKey, strconv.FormatInt(int64(prod.ID), 10), &prod)
-	productRepo := products.NewProductRepository(p.p.GormDB)
+	productRepo := products.NewProductRepository(c, p.p, p.p.GormDB)
 	if prod.ID != 0 {
 		//_prod, err := productRepo.GetProductByID(id)
 		//if err != nil {
@@ -120,12 +121,12 @@ func (p productUsecase) GetProductByID(id int64) (*payload.ProductResponse, erro
 	return &prodResponse, nil
 }
 
-func (p productUsecase) DeleteProductByID(id int64) error {
+func (p productUsecase) DeleteProductByID(c *gin.Context, id int64) error {
 	err := utils.RedisRemoveHashGenericKey(redisHashKey, strconv.FormatInt(int64(id), 10))
 	if err != nil {
 		fmt.Printf("error deleting on redis: key: %v - error: %v", id, err)
 	}
-	productRepo := products.NewProductRepository(p.p.GormDB)
+	productRepo := products.NewProductRepository(c, p.p, p.p.GormDB)
 	prod, err := productRepo.GetProductByID(id)
 	if err != nil {
 		return payload.ErrEntityNotFound(entityName, err)
@@ -137,8 +138,8 @@ func (p productUsecase) DeleteProductByID(id int64) error {
 	return nil
 }
 
-func (p productUsecase) UpdateProductByID(id int64, updatePayload *payload.UpdateProductRequest) (*payload.ProductResponse, error) {
-	productRepo := products.NewProductRepository(p.p.GormDB)
+func (p productUsecase) UpdateProductByID(c *gin.Context, id int64, updatePayload *payload.UpdateProductRequest) (*payload.ProductResponse, error) {
+	productRepo := products.NewProductRepository(c, p.p, p.p.GormDB)
 	prod, err := productRepo.GetProductByID(id)
 	if err != nil {
 		return nil, payload.ErrEntityNotFound(entityName, err)
