@@ -3,6 +3,7 @@ package orders
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"pm/domain/entity"
 	"pm/domain/repository"
@@ -25,12 +26,15 @@ func (o OrderRepository) Create(order *entity.Order) error {
 	span := o.p.Logger.Start(o.c, "CREATE_ORDER_DATABASE", o.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
 	tx := o.db.Begin()
+	o.p.Logger.Info("CREATE_ORDER_DATABASE", map[string]interface{}{"data": order})
+
 	productRepo := products.NewProductRepository(o.c, o.p, tx)
 	// Get product by product id in order item
-	prods, err := productRepo.GetStockByProductIDs(order.OrderItems...)
+	prods, err := productRepo.GetProductByOrderItem(order.OrderItems...)
 	if err != nil {
+		o.p.Logger.Error("CREATE_ORDER_DATABASE", map[string]interface{}{"message": err.Error()})
 		tx.Rollback()
-		return payload.ErrDB(err)
+		return err
 	}
 
 	for index, v := range prods {
@@ -44,7 +48,6 @@ func (o OrderRepository) Create(order *entity.Order) error {
 		prods[index] = v
 	}
 
-	o.p.Logger.Info("CREATE_ORDER_DATABASE", map[string]interface{}{"data": order})
 	if err := tx.Create(&order).Error; err != nil {
 		o.p.Logger.Error("CREATE_ORDER_DATABASE_FAILED", map[string]interface{}{"message": err.Error()})
 		tx.Rollback()
@@ -57,15 +60,13 @@ func (o OrderRepository) Create(order *entity.Order) error {
 	}
 
 	go func() {
-		fmt.Println("Running goroutine update products")
 		o.p.Logger.Info("GOROUTINE_UPDATE_QUANTITY_PRODUCT", map[string]interface{}{"products": prods})
 		prodRepo := products.NewProductRepository(o.c, o.p, o.db)
 		prods, err = prodRepo.UpdateMultiProduct(prods...)
 		if err != nil {
-			o.p.Logger.Error("GOROUTINE_UPDATE_QUANTITY_PRODUCT_FAILED", map[string]interface{}{"products": prods, "message": err.Error()})
-			fmt.Printf("error updating quantity product by goroutine")
+			zap.S().Errorw("GOROUTINE_UPDATE_QUANTITY_PRODUCT_FAILED", map[string]interface{}{"products": prods, "message": err.Error()})
 		}
-		o.p.Logger.Error("GOROUTINE_UPDATE_QUANTITY_PRODUCT_SUCCESSFULLY", map[string]interface{}{"products": prods})
+		zap.S().Infow("GOROUTINE_UPDATE_QUANTITY_PRODUCT_SUCCESSFULLY", map[string]interface{}{"products": prods})
 	}()
 
 	o.p.Logger.Info("CREATE_ORDER_DATABASE_SUCCESSFULLY", map[string]interface{}{"data": order})

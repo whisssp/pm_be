@@ -1,10 +1,8 @@
 package handlers
 
 import (
-	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"net/http"
 	"pm/application"
 	"pm/domain/entity"
@@ -38,14 +36,19 @@ func NewCategoryHandler(p *base.Persistence) *CategoryHandler {
 //	@Failure		500						{object}	payload.AppError
 //	@Router			/categories 							[post]
 func (h CategoryHandler) HandleCreateCategory(c *gin.Context) {
+	span := h.p.Logger.Start(c, "handlers/HandleCreateCategory", h.p.Logger.SetContextWithSpanFunc())
+	defer span.End()
+
 	var categoryReq payload.CreateCategoryRequest
 	if err := c.ShouldBindJSON(&categoryReq); err != nil {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		c.Error(payload.ErrInvalidRequest(err))
+		h.p.Logger.Error("CREATE_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 
-	if err := h.categoryUsecase.CreateCategory(&categoryReq); err != nil {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+	if err := h.categoryUsecase.CreateCategory(c, &categoryReq); err != nil {
+		c.Error(err)
+		h.p.Logger.Error("CREATE_CATEGORY_DATABASE_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 
@@ -67,22 +70,28 @@ func (h CategoryHandler) HandleCreateCategory(c *gin.Context) {
 //	@Failure		500			{object}	payload.AppError
 //	@Router			/categories 				[get]
 func (h CategoryHandler) HandleGetAllCategories(c *gin.Context) {
+	span := h.p.Logger.Start(c, "handlers/GetAllCategories", h.p.Logger.SetContextWithSpanFunc())
+	defer span.End()
+
 	var categoryFilter entity.CategoryFilter
 	var pagination entity.Pagination
 
 	if err := c.ShouldBindQuery(&categoryFilter); err != nil {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		c.Error(payload.ErrInvalidRequest(err))
+		h.p.Logger.Error("GET_ALL_CATEGORIES_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 
 	if err := c.ShouldBindQuery(&pagination); err != nil {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		c.Error(payload.ErrInvalidRequest(err))
+		h.p.Logger.Error("GET_ALL_CATEGORIES_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 
-	categories, err := h.categoryUsecase.GetAllCategories(&categoryFilter, &pagination)
+	categories, err := h.categoryUsecase.GetAllCategories(c, &categoryFilter, &pagination)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		c.Error(payload.ErrInvalidRequest(err))
+		h.p.Logger.Error("GET_ALL_CATEGORIES_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, payload.SuccessResponse(categories, ""))
@@ -102,18 +111,21 @@ func (h CategoryHandler) HandleGetAllCategories(c *gin.Context) {
 //	@Failure		500				{object}	payload.AppError
 //	@Router			/categories/:id 				[get]
 func (h CategoryHandler) HandleGetCategoryByID(c *gin.Context) {
+	span := h.p.Logger.Start(c, "handlers/HandleGetCategoryByID", h.p.Logger.SetContextWithSpanFunc())
+	defer span.End()
+	h.p.Logger.Info("GET_CATEGORY", map[string]interface{}{})
+
 	id, _ := strconv.ParseInt(removeSlashFromParam(c.Param("id")), 10, 64)
 	if id == 0 {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(fmt.Errorf("id must be a string of numbers")))
+		err := fmt.Errorf("id must be a string of numbers")
+		c.Error(payload.ErrInvalidRequest(err))
+		h.p.Logger.Error("GET_CATEGORY_FAILED", map[string]interface{}{"data": err.Error()})
 		return
 	}
-	prod, err := h.categoryUsecase.GetCategoryByID(id)
+	prod, err := h.categoryUsecase.GetCategoryByID(c, id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, payload.ErrEntityNotFound("categories", err))
-			return
-		}
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		c.Error(err)
+		h.p.Logger.Error("GET_CATEGORY", map[string]interface{}{"data": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, payload.SuccessResponse(prod, ""))
@@ -133,18 +145,21 @@ func (h CategoryHandler) HandleGetCategoryByID(c *gin.Context) {
 //	@Failure		500				{object}	payload.AppError
 //	@Router			/categories/:id 				[delete]
 func (h CategoryHandler) HandleDeleteCategoryByID(c *gin.Context) {
+	span := h.p.Logger.Start(c, "handlers/HandleDeleteCategoryByID", h.p.Logger.SetContextWithSpanFunc())
+	defer span.End()
+	h.p.Logger.Info("DELETE_CATEGORY", map[string]interface{}{})
+
 	id, _ := strconv.ParseInt(removeSlashFromParam(c.Param("id")), 10, 64)
 	if id == 0 {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(fmt.Errorf("id must be a string of numbers")))
+		err := fmt.Errorf("id must be a string of numbers")
+		c.Error(payload.ErrInvalidRequest(err))
+		h.p.Logger.Error("DELETE_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
-	err := h.categoryUsecase.DeleteCategoryByID(id)
+	err := h.categoryUsecase.DeleteCategoryByID(c, id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, payload.ErrEntityNotFound("categories", err))
-			return
-		}
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		c.Error(err)
+		h.p.Logger.Error("DELETE_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, payload.SuccessResponse(nil, ""))
@@ -165,23 +180,26 @@ func (h CategoryHandler) HandleDeleteCategoryByID(c *gin.Context) {
 //	@Failure		500				{object}	payload.AppError
 //	@Router			/categories/:id 				[put]
 func (h CategoryHandler) HandleUpdateCategoryByID(c *gin.Context) {
+	span := h.p.Logger.Start(c, "handlers/HandleUpdateCategoryByID", h.p.Logger.SetContextWithSpanFunc())
+	defer span.End()
+
 	var updatePayload payload.UpdateCategoryRequest
 	id, _ := strconv.ParseInt(removeSlashFromParam(c.Param("id")), 10, 64)
 	if id == 0 {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(fmt.Errorf("id must be a string of numbers")))
+		err := fmt.Errorf("id must be a string of numbers")
+		c.Error(payload.ErrInvalidRequest(err))
+		h.p.Logger.Error("UPDATE_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 	if err := c.ShouldBindJSON(&updatePayload); err != nil {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		c.Error(payload.ErrInvalidRequest(err))
+		h.p.Logger.Error("UPDATE_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
-	categoryUpdated, err := h.categoryUsecase.UpdateCategoryByID(id, updatePayload)
+	categoryUpdated, err := h.categoryUsecase.UpdateCategoryByID(c, id, updatePayload)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, payload.ErrEntityNotFound("categories", err))
-			return
-		}
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		c.Error(err)
+		h.p.Logger.Error("UPDATE_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, payload.SuccessResponse(categoryUpdated, ""))

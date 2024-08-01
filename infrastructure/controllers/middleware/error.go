@@ -12,7 +12,6 @@ func ErrorHandlingMiddleware() gin.HandlerFunc {
 
 		if len(c.Errors) > 0 {
 			err := c.Errors.Last().Err
-
 			if customErr, ok := err.(*payload.AppError); ok {
 				c.JSON(customErr.StatusCode, customErr)
 				return

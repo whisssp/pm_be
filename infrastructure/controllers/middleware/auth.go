@@ -44,7 +44,7 @@ func AuthMiddleware(p *base.Persistence, roles ...string) gin.HandlerFunc {
 			return
 		}
 		idInt, _ := strconv.ParseInt(id.(string), 10, 64)
-		user, err := users.NewUserRepository(p.GormDB).GetUserByID(idInt)
+		user, err := users.NewUserRepository(c, p, p.GormDB).GetUserByID(idInt)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, payload.NewUnauthorized(errors.New("unauthorized"), "Not found the user from token", "ErrInvalidClaims"))
 			return

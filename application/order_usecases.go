@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"math"
 	"pm/domain/entity"
@@ -51,7 +52,7 @@ func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrde
 		isAvailable = (p.Stock - int64(e.Quantity)) >= 0
 		if !isAvailable {
 			errP := fmt.Errorf("product: %v is not available, please check again", e.ProductID)
-			o.p.Logger.Error("ERROR_CREATE_ORDER_USECASES", map[string]interface{}{"message": errP.Error()})
+			o.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": errP.Error()})
 			return payload.ErrInvalidRequest(errP)
 		}
 		p.Stock = p.Stock - int64(e.Quantity)
@@ -59,31 +60,41 @@ func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrde
 	}
 
 	orderRepo := orders.NewOrderRepository(c, o.p, o.p.GormDB)
-	o.p.Logger.Info("CREATE_ORDER_USECASES", map[string]interface{}{"order": order})
+	o.p.Logger.Info("CREATE_ORDER", map[string]interface{}{"order": order})
 	if err := orderRepo.Create(&order); err != nil {
-		o.p.Logger.Error("ERROR_CREATE_ORDER_DATABASE", map[string]interface{}{"message": err.Error()})
+		o.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
+		if err, ok := err.(*payload.AppError); ok {
+			return err
+		}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return payload.ErrEntityNotFound(entityName, err)
+		}
 		return payload.ErrDB(err)
 	}
 
-	go func(o orderUsecase) {
-		span := o.p.Logger.Start(c, "GO_ROUTINE_UPDATE_PRODUCT_STOCK", o.p.Logger.SetContextWithSpanFunc())
-		defer span.End()
-		fmt.Println("setting new product on redis")
+	go func() {
+		logger, err := zap.NewProduction()
+		if err != nil {
+			fmt.Println("error trying to initialize logger")
+		}
+		defer logger.Sync()
+		sugar := logger.Sugar()
+
+		sugar.Debugw("GOROUTINE_UPDATE_PRODUCT_STOCK", map[string]interface{}{"products": prods})
 		errMap := make(map[string]interface{})
-		o.p.Logger.Info("GO_ROUTINE_UPDATE_PRODUCT_STOCK", map[string]interface{}{"products": prods})
 		for _, e := range prods {
 			err := utils.RedisSetHashGenericKey(redisHashKey, strconv.Itoa(int(e.ID)), e, o.p.Redis.KeyExpirationTime)
 			if err != nil {
 				errMap[strconv.Itoa(int(e.ID))] = err
-				fmt.Printf("error when updating product stock to redis: %v", prods)
+				zap.S().Errorw("GOROUTINE_UPDATE_PRODUCT_STOCK", map[string]interface{}{"products": prods})
 				go jobs.LoadProductToRedis(o.p)
 			}
 		}
 		if len(errMap) > 0 {
-			o.p.Logger.Error("GO_ROUTINE_UPDATE_PRODUCT_STOCK_REDIS_FAILED", errMap)
+			sugar.Errorw("GOROUTINE_UPDATE_PRODUCT_STOCK_FAILED", errMap)
 		}
-	}(o)
-	o.p.Logger.Info("CREATE_ORDER_USECASES_SUCCESSFULLY", map[string]interface{}{"order": order})
+	}()
+	o.p.Logger.Info("CREATE_ORDER_SUCCESSFULLY", map[string]interface{}{"order": order})
 	return nil
 }
 

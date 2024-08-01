@@ -33,27 +33,45 @@ func NewProductRepository(c *gin.Context, p *base.Persistence, db *gorm.DB) repo
 }
 
 func (prodRepo *ProductRepository) Create(product *entity.Product) error {
+	//if prodRepo.c == nil {
+	//	db := prodRepo.db
+	//	err := db.Create(product).Error
+	//	if err != nil {
+	//		return err
+	//	}
+	//	return nil
+	//}
+
+	span := prodRepo.p.Logger.Start(prodRepo.c, "CREATE_PRODUCT_DATABASE", prodRepo.p.Logger.SetContextWithSpanFunc())
+	defer span.End()
+	prodRepo.p.Logger.Info("CREATE_PRODUCT", map[string]interface{}{"data": product})
+
 	db := prodRepo.db
-	err := db.Create(product).Error
+	err := db.Create(&product).Error
 	if err != nil {
-		return payload.ErrDB(err)
+		prodRepo.p.Logger.Error("CREATE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
+		return err
 	}
+	prodRepo.p.Logger.Info("CREATE_PRODUCT_SUCCESSFULLY", map[string]interface{}{"data": product.ID})
 	return nil
 }
 
 func (prodRepo *ProductRepository) Update(product *entity.Product) (*entity.Product, error) {
+	span := prodRepo.p.Logger.Start(prodRepo.c, "UPDATE_PRODUCT_DATABASE", prodRepo.p.Logger.SetContextWithSpanFunc())
+	defer span.End()
+	prodRepo.p.Logger.Info("UPDATE_PRODUCT", map[string]interface{}{"data": product})
 	db := prodRepo.db
-	if err := db.Updates(product).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, payload.ErrEntityNotFound(entityName, err)
-		}
-		return nil, payload.ErrDB(err)
+	if err := db.Debug().Model(&product).Updates(&product).Error; err != nil {
+		prodRepo.p.Logger.Error("UPDATE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
+		return nil, err
 	}
+
+	prodRepo.p.Logger.Info("UPDATE_PRODUCT_SUCCESSFULLY", map[string]interface{}{"data": product})
 	return product, nil
 }
 
 func (prodRepo *ProductRepository) UpdateMultiProduct(products ...entity.Product) ([]entity.Product, error) {
-	span := prodRepo.p.Logger.Start(prodRepo.c, "UPDATE_PRODUCT_STOCK")
+	span := prodRepo.p.Logger.Start(prodRepo.c, "UPDATE_PRODUCT_STOCK_DATABASE")
 	defer span.End()
 
 	tx := prodRepo.db.Begin()
@@ -78,18 +96,35 @@ func (prodRepo *ProductRepository) UpdateMultiProduct(products ...entity.Product
 }
 
 func (prodRepo *ProductRepository) GetProductByID(id int64) (*entity.Product, error) {
+	span := prodRepo.p.Logger.Start(prodRepo.c, "GET_PRODUCT_BY_ID_DATABASE")
+	defer span.End()
+	prodRepo.p.Logger.Info("GET_PRODUCT", map[string]interface{}{"data": id})
+
 	db := prodRepo.db
 	var product entity.Product
-	if err := db.Where("id = ?", id).First(&product).Error; err != nil {
+	if err := db.Model(&entity.Product{}).Where("id = ?", id).First(&product).Error; err != nil {
+		prodRepo.p.Logger.Info("GET_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
+			return nil, payload.ErrEntityNotFound(entityName, err)
 		}
 		return nil, payload.ErrDB(err)
 	}
+
+	prodRepo.p.Logger.Info("GET_PRODUCT_SUCCESSFULLY", map[string]interface{}{"data": product})
 	return &product, nil
 }
 
 func (prodRepo *ProductRepository) GetAllProducts(filter *entity.ProductFilter, pagination *entity.Pagination) ([]entity.Product, error) {
+	span := prodRepo.p.Logger.Start(prodRepo.c, "GET_ALL_PRODUCTS_DATABASE")
+	defer span.End()
+	prodRepo.p.Logger.Info("GET_ALL_PRODUCTS", map[string]interface{}{"params": struct {
+		Filter     interface{} `json:"filter"`
+		Pagination interface{} `json:"pagination"`
+	}{
+		Filter:     filter,
+		Pagination: pagination,
+	}})
+
 	var totalRows int64
 	products := make([]entity.Product, 0)
 	db := prodRepo.db
@@ -99,46 +134,57 @@ func (prodRepo *ProductRepository) GetAllProducts(filter *entity.ProductFilter, 
 	}
 	if pagination != nil {
 		if err := db.Scopes(paginate(pagination)).Find(&products).Error; err != nil {
+			prodRepo.p.Logger.Error("GET_ALL_PRODUCTS_FAILED", map[string]interface{}{"message": err.Error()})
 			return nil, payload.ErrDB(err)
 		}
 		pagination.TotalRows = totalRows
 		totalPages := int(math.Ceil(float64(totalRows) / float64(pagination.Limit)))
 		pagination.TotalPages = totalPages
+		prodRepo.p.Logger.Info("GET_ALL_PRODUCTS_SUCCESSFULLY", map[string]interface{}{"products": products, "filter": filter, "pagination": pagination})
 		return products, nil
 	}
 	if err := db.Find(&products).Error; err != nil {
+		prodRepo.p.Logger.Error("GET_ALL_PRODUCTS_FAILED", map[string]interface{}{"message": err.Error()})
 		return nil, payload.ErrDB(err)
 	}
+
+	prodRepo.p.Logger.Info("GET_ALL_PRODUCTS_SUCCESSFULLY", map[string]interface{}{"products": products, "filter": filter, "pagination": pagination})
 	return products, nil
 }
 
 func (prodRepo *ProductRepository) DeleteProduct(product *entity.Product) error {
+	span := prodRepo.p.Logger.Start(prodRepo.c, "DELETE_PRODUCT_DATABASE")
+	defer span.End()
+	prodRepo.p.Logger.Info("DELETE_PRODUCT", map[string]interface{}{"data": product})
+
 	db := prodRepo.db
-	if err := db.Delete(product).Error; err != nil {
+	if err := db.Debug().Model(&product).Delete(&product).Error; err != nil {
+		prodRepo.p.Logger.Error("DELETE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return payload.ErrEntityNotFound(entityName, err)
 		}
 		return payload.ErrDB(err)
 	}
+
+	prodRepo.p.Logger.Info("DELETE_PRODUCT_SUCCESSFULLY", map[string]interface{}{"data": product})
 	return nil
 }
 
-func (prodRepo *ProductRepository) GetStockByProductIDs(orderItems ...entity.OrderItem) ([]entity.Product, error) {
-	span := prodRepo.p.Logger.Start(prodRepo.c, "GET_PRODUCT_ID_FROM_ORDER_ITEM")
+func (prodRepo *ProductRepository) GetProductByOrderItem(orderItems ...entity.OrderItem) ([]entity.Product, error) {
+	span := prodRepo.p.Logger.Start(prodRepo.c, "GET_PRODUCT_BY_ORDER_ITEM")
 	defer span.End()
 
-	keyArr := make([]uint, len(orderItems))
-	for i, _ := range keyArr {
-		keyArr[i] = orderItems[i].ProductID
+	products := make([]entity.Product, 0)
+	for _, v := range orderItems {
+		var p entity.Product
+		err := prodRepo.db.Where("id = ?", v.ProductID).First(&p).Error
+		if err != nil {
+			prodRepo.p.Logger.Error("GET_PRODUCT_ERROR", map[string]interface{}{"message": err.Error()})
+			return nil, err
+		}
+		products = append(products, p)
 	}
-	prodRepo.p.Logger.Info("GET_PRODUCT", map[string]interface{}{"productIds": keyArr})
-	products := make([]entity.Product, len(orderItems))
-	err := prodRepo.db.Where("id IN ?", keyArr).Find(&products)
-	if err.Error != nil {
-		errD := err.Error
-		prodRepo.p.Logger.Error("GET_PRODUCT_ERROR", map[string]interface{}{"products": products, "message": errD.Error()})
-		return nil, errD
-	}
+
 	prodRepo.p.Logger.Info("GET_PRODUCT_SUCCESSFULLY", map[string]interface{}{"products": products})
 	return products, nil
 }

@@ -31,10 +31,8 @@ type ListProductResponses struct {
 }
 
 type CategoryResponse struct {
-	ID        uint      `json:"id"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"UpdatedAt"`
+	ID   uint   `json:"id"`
+	Name string `json:"name"`
 	AuditTime
 }
 

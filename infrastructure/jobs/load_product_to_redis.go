@@ -2,8 +2,8 @@ package jobs
 
 import (
 	"fmt"
+	"go.uber.org/zap"
 	"pm/domain/entity"
-	"pm/infrastructure/implementations/products"
 	"pm/infrastructure/persistences/base"
 	"pm/utils"
 )
@@ -11,15 +11,27 @@ import (
 const redisProductKey = "products"
 
 func LoadProductToRedis(p *base.Persistence) {
-	productGormRepo := products.NewProductRepository(nil, p, p.GormDB)
-	prods, err := productGormRepo.GetAllProducts(nil, nil)
+	logger, err := zap.NewProduction()
 	if err != nil {
-		fmt.Println("error getting products from database", err)
+		fmt.Println("error trying to initialize logger")
+	}
+	defer logger.Sync()
+	sugar := logger.Sugar()
+
+	// Use the logger
+	sugar.Debugw("GO_ROUTINE_LOAD_PRODUCT_TO_REDIS")
+	products := make([]entity.Product, 0)
+	err = p.GormDB.Model(&entity.Product{}).Find(&products).Error
+	if err != nil {
+		sugar.Errorw("ERROR_LOAD_PRODUCT_TO_REDIS", map[string]interface{}{"message": err.Error()})
+	}
+	if err != nil {
+		sugar.Errorw("ERROR_LOAD_PRODUCT_TO_REDIS", map[string]interface{}{"message": err.Error()})
 	}
 
-	err = utils.RedisSetHashGenericKeySlice(redisProductKey, prods, entity.GetID, p.Redis.KeyExpirationTime)
+	err = utils.RedisSetHashGenericKeySlice(redisProductKey, products, entity.GetID, p.Redis.KeyExpirationTime)
 	if err != nil {
-		fmt.Println("error adding data", err)
+		sugar.Errorw("ERROR_LOAD_PRODUCT_TO_REDIS", map[string]interface{}{"message": err.Error()})
 		return
 	}
 }

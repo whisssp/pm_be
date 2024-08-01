@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"pm/application"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/persistences/base"
@@ -57,23 +58,23 @@ func (h *OrderHandler) HandleCreateOrder(c *gin.Context) {
 		id, err = strconv.ParseInt(v, 10, 64)
 		if err != nil {
 			h.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
-			utils.HttpErrorResponse(c, payload.ErrInternal(fmt.Errorf("error cast from any to int64")))
+			c.Error(payload.ErrInternal(fmt.Errorf("error cast from any to int64")))
 			return
 		}
 	default:
 		h.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
-		utils.HttpErrorResponse(c, payload.ErrInternal(fmt.Errorf("error cast from any to int64")))
+		c.Error(payload.ErrInternal(fmt.Errorf("error cast from any to int64")))
 		return
 	}
 
 	requestPayload.UserID = uint(id)
 	requestPayload.Status = "WAITING_FOR_PAYMENT"
 	if err := h.usecase.CreateOrder(c, &requestPayload); err != nil {
-		h.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"data": err.Error()})
+		h.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
 		c.Error(err)
 		return
 	}
-	utils.HttpSuccessResponse(c, nil, "")
+	c.JSON(http.StatusOK, payload.SuccessResponse(nil, ""))
 	h.p.Logger.Info("CREATE_ORDER_SUCCESSFULLY", map[string]interface{}{})
 }
 

@@ -1,15 +1,13 @@
 package handlers
 
 import (
-	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
+	"net/http"
 	"pm/application"
 	"pm/domain/entity"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/persistences/base"
-	"pm/utils"
 	"strconv"
 	"strings"
 )
@@ -42,17 +40,22 @@ func NewProductHandler(p *base.Persistence) *ProductHandler {
 //	@Failure		500						{object}	payload.AppError
 //	@Router			/products 							[post]
 func (handler *ProductHandler) HandleCreateProduct(c *gin.Context) {
+	span := handler.p.Logger.Start(c, "handlers/HandleGetAllProducts", handler.p.Logger.SetContextWithSpanFunc())
+	defer span.End()
+
 	var createProdReq payload.CreateProductRequest
 	if err := c.ShouldBindJSON(&createProdReq); err != nil {
-		utils.HttpErrorResponse(c, payload.ErrInvalidRequest(err))
+		c.Error(payload.ErrInvalidRequest(err))
+		handler.p.Logger.Error("GET_ALL_PRODUCTS_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 
 	if err := handler.usecase.CreateProduct(c, &createProdReq); err != nil {
-		utils.HttpErrorResponse(c, err)
+		c.Error(err)
+		handler.p.Logger.Error("GET_ALL_PRODUCTS_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
-	utils.HttpSuccessResponse(c, nil, "")
+	c.JSON(http.StatusOK, payload.SuccessResponse(nil, ""))
 }
 
 // HandleGetAllProducts GetAllProducts godoc
@@ -71,24 +74,31 @@ func (handler *ProductHandler) HandleCreateProduct(c *gin.Context) {
 //	@Router			/products 				[get]
 //	@Router			/products/search 				[get]
 func (handler *ProductHandler) HandleGetAllProducts(c *gin.Context) {
+	span := handler.p.Logger.Start(c, "handlers/HandleGetAllProducts", handler.p.Logger.SetContextWithSpanFunc())
+	defer span.End()
+
 	var filter entity.ProductFilter
 	if err := c.ShouldBindQuery(&filter); err != nil {
-		utils.HttpErrorResponse(c, payload.ErrInvalidRequest(err))
+		c.Error(payload.ErrInvalidRequest(err))
+		handler.p.Logger.Error("GET_ALL_PRODUCTS_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 
 	pagination := entity.InitPaginate()
 	if err := c.ShouldBindQuery(&pagination); err != nil {
-		utils.HttpErrorResponse(c, payload.ErrInvalidRequest(err))
+		c.Error(payload.ErrInvalidRequest(err))
+		handler.p.Logger.Error("GET_ALL_PRODUCTS_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 
 	prods, err := handler.usecase.GetAllProducts(c, &filter, pagination)
 	if err != nil {
-		utils.HttpErrorResponse(c, err)
+		c.Error(err)
+		handler.p.Logger.Error("GET_ALL_PRODUCTS_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
-	utils.HttpSuccessResponse(c, prods, "")
+
+	c.JSON(http.StatusOK, payload.SuccessResponse(prods, ""))
 }
 
 // HandleGetProductByID GetProductByID godoc
@@ -105,18 +115,24 @@ func (handler *ProductHandler) HandleGetAllProducts(c *gin.Context) {
 //	@Failure		500				{object}	payload.AppError
 //	@Router			/products/:id 				[get]
 func (handler *ProductHandler) HandleGetProductByID(c *gin.Context) {
+	span := handler.p.Logger.Start(c, "handlers/HandleGetProductByID", handler.p.Logger.SetContextWithSpanFunc())
+	defer span.End()
 	id, _ := strconv.ParseInt(removeSlashFromParam(c.Param("id")), 10, 64)
 	if id == 0 {
-		utils.HttpErrorResponse(c, payload.ErrParamRequired(fmt.Errorf("[id] parameter is required")))
+		err := fmt.Errorf("[id] parameter is required")
+		c.Error(payload.ErrInvalidRequest(err))
+		handler.p.Logger.Error("GET_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 
 	prod, err := handler.usecase.GetProductByID(c, id)
 	if err != nil {
-		utils.HttpErrorResponse(c, err)
+		c.Error(err)
+		handler.p.Logger.Error("GET_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
-	utils.HttpSuccessResponse(c, prod, "")
+
+	c.JSON(http.StatusOK, payload.SuccessResponse(prod, ""))
 }
 
 // HandleDeleteProductByID DeleteProductByID godoc
@@ -133,18 +149,24 @@ func (handler *ProductHandler) HandleGetProductByID(c *gin.Context) {
 //	@Failure		500				{object}	payload.AppError
 //	@Router			/products/:id 				[delete]
 func (handler *ProductHandler) HandleDeleteProductByID(c *gin.Context) {
+	span := handler.p.Logger.Start(c, "handlers/HandleDeleteProductByID", handler.p.Logger.SetContextWithSpanFunc())
+	defer span.End()
+
 	id, _ := strconv.ParseInt(removeSlashFromParam(c.Param("id")), 10, 64)
 	if id == 0 {
-		utils.HttpErrorResponse(c, payload.ErrParamRequired(fmt.Errorf("[id] parameter is required")))
+		err := fmt.Errorf("[id] parameter is required")
+		c.Error(payload.ErrInvalidRequest(err))
+		handler.p.Logger.Error("DELETE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 
 	err := handler.usecase.DeleteProductByID(c, id)
 	if err != nil {
-		utils.HttpErrorResponse(c, err)
+		c.Error(err)
+		handler.p.Logger.Error("DELETE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
-	utils.HttpSuccessResponse(c, nil, "")
+	c.JSON(http.StatusOK, payload.SuccessResponse(nil, ""))
 }
 
 // HandleUpdateProductByID UpdateProductByID godoc
@@ -162,28 +184,31 @@ func (handler *ProductHandler) HandleDeleteProductByID(c *gin.Context) {
 //	@Failure		500				{object}	payload.AppError
 //	@Router			/products/:id 				[put]
 func (handler *ProductHandler) HandleUpdateProductByID(c *gin.Context) {
+	span := handler.p.Logger.Start(c, "handlers/HandleUpdateProductByID", handler.p.Logger.SetContextWithSpanFunc())
+	defer span.End()
+
 	id, _ := strconv.ParseInt(removeSlashFromParam(c.Param("id")), 10, 64)
 	if id == 0 {
-		utils.HttpErrorResponse(c, payload.ErrParamRequired(fmt.Errorf("[id] parameter is required")))
+		err := fmt.Errorf("[id] parameter is required")
+		c.Error(payload.ErrInvalidRequest(err))
+		handler.p.Logger.Error("UPDATE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 
 	var updateProductReq payload.UpdateProductRequest
 	if err := c.ShouldBindJSON(&updateProductReq); err != nil {
-		utils.HttpErrorResponse(c, err)
+		c.Error(payload.ErrInvalidRequest(err))
+		handler.p.Logger.Error("UPDATE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 
 	prodUpdated, err := handler.usecase.UpdateProductByID(c, id, &updateProductReq)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			utils.HttpNotFoundResponse(c, err)
-			return
-		}
-		utils.HttpErrorResponse(c, err)
+		c.Error(err)
+		handler.p.Logger.Error("UPDATE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
-	utils.HttpSuccessResponse(c, prodUpdated, "")
+	c.JSON(http.StatusOK, payload.SuccessResponse(prodUpdated, ""))
 }
 
 func removeSlashFromParam(param string) string {

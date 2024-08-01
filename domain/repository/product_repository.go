@@ -10,6 +10,6 @@ type ProductRepository interface {
 	GetProductByID(id int64) (*entity.Product, error)
 	GetAllProducts(filter *entity.ProductFilter, pagination *entity.Pagination) ([]entity.Product, error)
 	DeleteProduct(product *entity.Product) error
-	GetStockByProductIDs(orderItems ...entity.OrderItem) ([]entity.Product, error)
+	GetProductByOrderItem(orderItems ...entity.OrderItem) ([]entity.Product, error)
 	UpdateMultiProduct(...entity.Product) ([]entity.Product, error)
 }

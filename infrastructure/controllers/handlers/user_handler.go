@@ -28,25 +28,25 @@ func NewUserHandler(p *base.Persistence) *UserHandler {
 // @Failure 			500 	{object} payload.AppError{}
 // @Router				/users/authenticate [post]
 func (h *UserHandler) HandleAuthenticate(c *gin.Context) {
-	span := h.p.Logger.Start(c, "handlers/HandleAuthenticate")
-	h.p.Logger.SetContextWithSpan(span)
-	defer h.p.Logger.End()
+	span := h.p.Logger.Start(c, "handlers/HandleAuthenticate", h.p.Logger.SetContextWithSpanFunc())
+	defer span.End()
+
 	var loginRequest payload.LoginRequest
 	if err := c.ShouldBindJSON(&loginRequest); err != nil {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		c.Error(payload.ErrInvalidRequest(err))
+		h.p.Logger.Error("AUTHENTICATE_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 
 	response, err := h.userUsecase.Authenticate(c, &loginRequest)
 	if err != nil {
-		h.p.Logger.Error(err.Error(), map[string]interface{}{
+		c.Error(payload.ErrInvalidRequest(err))
+		h.p.Logger.Error("AUTHENTICATE_FAILED", map[string]interface{}{
 			"message": err.Error(),
 		})
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
 		return
 	}
 
-	h.p.Logger.Info("handlers/HandleAuthenticate", map[string]interface{}{"token": response.Token})
 	c.JSON(http.StatusOK, payload.SuccessResponse(response, ""))
 }
 
@@ -60,14 +60,23 @@ func (h *UserHandler) HandleAuthenticate(c *gin.Context) {
 // @Failure 			500 	{object} payload.AppError{}
 // @Router				/users/authenticate [post]
 func (h *UserHandler) HandleCreateUser(c *gin.Context) {
+	span := h.p.Logger.Start(c, "handlers/HandleCreateUser", h.p.Logger.SetContextWithSpanFunc())
+	defer span.End()
+
 	var userRequest payload.UserRequest
 	if err := c.ShouldBindJSON(&userRequest); err != nil {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		c.Error(err)
+		h.p.Logger.Error("CREATE_USER_FAILED", map[string]interface{}{
+			"message": err.Error(),
+		})
 		return
 	}
 
 	if err := h.userUsecase.CreateUser(c, &userRequest); err != nil {
-		c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
+		c.Error(err)
+		h.p.Logger.Error("CREATE_USER_FAILED", map[string]interface{}{
+			"message": err.Error(),
+		})
 		return
 	}
 
