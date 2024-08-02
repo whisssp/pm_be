@@ -29,7 +29,7 @@ func (c CategoryRepository) Create(category *entity.Category) error {
 	db := c.db
 	if err := db.Create(&category).Error; err != nil {
 		c.p.Logger.Error("CREATE_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
-		return err
+		return payload.ErrDB(err)
 	}
 
 	c.p.Logger.Info("CREATE_CATEGORY_SUCCESSFULLY", map[string]interface{}{"data": category})
@@ -48,7 +48,7 @@ func (c CategoryRepository) Update(category *entity.Category) (*entity.Category,
 			return nil, payload.ErrEntityNotFound("products", err)
 
 		}
-		return nil, err
+		return nil, payload.ErrDB(err)
 	}
 
 	c.p.Logger.Info("UPDATE_CATEGORY_SUCCESSFULLY", map[string]interface{}{"data": category})
@@ -64,7 +64,7 @@ func (c CategoryRepository) GetCategoryByID(id int64) (*entity.Category, error) 
 	db := c.db
 	if err := db.Where("id = ?", id).First(&category).Error; err != nil {
 		c.p.Logger.Error("GET_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
-		return nil, err
+		return nil, payload.ErrDB(err)
 	}
 
 	c.p.Logger.Info("GET_CATEGORY_SUCCESSFULLY", map[string]interface{}{"data": category})
@@ -93,7 +93,7 @@ func (c CategoryRepository) GetAllCategories(filter *entity.CategoryFilter, pagi
 	}
 	if err := db.Scopes(paginate(pagination)).Find(&categories).Error; err != nil {
 		c.p.Logger.Error("GET_ALL_CATEGORIES_FAILED", map[string]interface{}{"message": err.Error()})
-		return nil, err
+		return nil, payload.ErrDB(err)
 	}
 	pagination.TotalRows = totalRows
 	pagination.TotalPages = int(math.Ceil(float64(totalRows) / float64(pagination.Limit)))
@@ -109,7 +109,11 @@ func (c CategoryRepository) DeleteCategory(category *entity.Category) error {
 	db := c.db
 	if err := db.Delete(&category).Error; err != nil {
 		c.p.Logger.Error("DELETE_CATEGORY_FAILED", map[string]interface{}{"data": category, "message": err.Error()})
-		return err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return payload.ErrEntityNotFound("products", err)
+
+		}
+		return payload.ErrDB(err)
 	}
 
 	c.p.Logger.Info("DELETE_CATEGORY_SUCCESSFULLY", map[string]interface{}{"data": category})

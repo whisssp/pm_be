@@ -50,6 +50,9 @@ func (u UserRepository) Create(user *entity.User) error {
 	db := u.db
 	if err := db.Debug().Model(&entity.User{}).Create(user).Error; err != nil {
 		u.p.Logger.Info("CREATE_USER_FAILED", map[string]interface{}{"message": err.Error()})
+		if errors.Is(err, gorm.ErrInvalidData) {
+			return payload.ErrInvalidRequest(err)
+		}
 		return payload.ErrDB(err)
 	}
 	u.p.Logger.Info("CREATE_USER_SUCCESSFULLY", map[string]interface{}{"data": user})
@@ -70,12 +73,13 @@ func (u UserRepository) GetUserByID(id int64) (*entity.User, error) {
 	span := u.p.Logger.Start(u.c, "GET_USER_BY_ID_DATABASE")
 	defer span.End()
 	u.p.Logger.Info("GET_USER_BY_ID", map[string]interface{}{"data": id})
+
 	db := u.db
 	var user entity.User
 	if err := db.Where("id = ?", id).Find(&user).Error; err != nil {
 		u.p.Logger.Info("GET_USER_BY_ID_FAILED", map[string]interface{}{"message": err.Error()})
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
+			return nil, payload.ErrEntityNotFound("users", err)
 		}
 		return nil, payload.ErrDB(err)
 	}

@@ -1,10 +1,8 @@
 package application
 
 import (
-	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"math"
 	"pm/domain/entity"
 	"pm/infrastructure/controllers/payload"
@@ -51,7 +49,7 @@ func (p productUsecase) CreateProduct(c *gin.Context, reqPayload *payload.Create
 	err := productRepo.Create(prod)
 	if err != nil {
 		p.p.Logger.Error("CREATE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
-		return payload.ErrCannotCreateEntity(entityName, err)
+		return err
 	}
 
 	go func(prod *entity.Product) {
@@ -111,7 +109,7 @@ func (p productUsecase) GetAllProducts(c *gin.Context, filter *entity.ProductFil
 	prods, err := productRepo.GetAllProducts(filter, pagination)
 	if err != nil {
 		p.p.Logger.Info("GET_ALL_PRODUCTS_FAILED", map[string]interface{}{"message": err.Error()})
-		return nil, payload.ErrCannotListEntity(entityName, err)
+		return nil, err
 	}
 
 	listProdResponse = mapper.ProdsToListProdsResponse(prods, pagination)
@@ -142,10 +140,7 @@ func (p productUsecase) GetProductByID(c *gin.Context, id int64) (*payload.Produ
 	prodPointer, err := productRepo.GetProductByID(id)
 	if err != nil {
 		p.p.Logger.Error("GET_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, payload.ErrEntityNotFound(entityName, err)
-		}
-		return nil, payload.ErrDB(err)
+		return nil, err
 	}
 	prodResponse := mapper.ProductToProductResponse(prodPointer)
 	p.p.Logger.Info("GET_PRODUCT_SUCCESSFULLY", map[string]interface{}{"data": prodResponse})
@@ -171,7 +166,7 @@ func (p productUsecase) DeleteProductByID(c *gin.Context, id int64) error {
 	err = productRepo.DeleteProduct(prod)
 	if err != nil {
 		p.p.Logger.Info("DELETE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
-		return payload.ErrCannotDeleteEntity(entityName, err)
+		return err
 	}
 
 	p.p.Logger.Info("DELETE_PRODUCT_SUCCESSFULLY", map[string]interface{}{})

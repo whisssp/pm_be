@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"go.opentelemetry.io/otel/trace"
 	"pm/domain/entity"
 )
 
@@ -10,6 +11,7 @@ type ProductRepository interface {
 	GetProductByID(id int64) (*entity.Product, error)
 	GetAllProducts(filter *entity.ProductFilter, pagination *entity.Pagination) ([]entity.Product, error)
 	DeleteProduct(product *entity.Product) error
-	GetProductByOrderItem(orderItems ...entity.OrderItem) ([]entity.Product, error)
+	GetProductByOrderItem(trace.Span, ...entity.OrderItem) ([]entity.Product, error)
 	UpdateMultiProduct(...entity.Product) ([]entity.Product, error)
+	IsAvailableStockByOrderItems(...entity.OrderItem) ([]entity.Product, error)
 }

@@ -42,10 +42,7 @@ func (u userUsecase) Authenticate(c *gin.Context, request *payload.LoginRequest)
 	user, err := userRepo.GetUserByEmail(request.Email)
 	if err != nil {
 		u.p.Logger.Error("AUTHENTICATE_FAILED", map[string]interface{}{"message": err.Error()})
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, payload.ErrEntityNotFound(user.TableName(), err)
-		}
-		return nil, payload.ErrDB(err)
+		return nil, err
 	}
 
 	if !utils.ComparePasswords([]byte(user.Password), []byte(request.Password)) {
@@ -56,7 +53,7 @@ func (u userUsecase) Authenticate(c *gin.Context, request *payload.LoginRequest)
 	token, err := utils.JwtGenerateJwtToken(user)
 	if err != nil {
 		u.p.Logger.Error("AUTHENTICATE_FAILED", map[string]interface{}{"message": err.Error()})
-		return nil, payload.ErrGenerateToken(err)
+		return nil, err
 	}
 
 	authResponse := payload.AuthResponse{Token: token}

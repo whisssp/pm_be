@@ -8,8 +8,10 @@ import (
 	"gorm.io/gorm"
 	"math"
 	"pm/domain/entity"
+	"pm/domain/repository"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/implementations/orders"
+	"pm/infrastructure/implementations/products"
 	"pm/infrastructure/jobs"
 	"pm/infrastructure/mapper"
 	"pm/infrastructure/persistences/base"
@@ -38,10 +40,14 @@ func NewOrderUsecase(p *base.Persistence) OrderUsecase {
 func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrderRequest) error {
 	span := o.p.Logger.Start(c, "CREATE_ORDER_USECASES", o.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
-	order := mapper.CreateOrderPayloadToOrder(reqPayload)
-	prods := make([]entity.Product, len(order.OrderItems))
+	o.p.Logger.Info("CREATE_ORDER", map[string]interface{}{"data": reqPayload})
 
-	// check product is still available stock must be greater or equal 0 after stock - quantity from order item
+	order := mapper.CreateOrderPayloadToOrder(reqPayload)
+	prods := make([]entity.Product, 0)
+	productRepo := products.NewProductRepository(c, o.p, o.p.GormDB)
+	var err error
+
+	// check product stock on redis
 	for i, e := range order.OrderItems {
 		var p entity.Product
 		utils.RedisGetHashGenericKey(redisHashKey, strconv.Itoa(int(e.ProductID)), &p)
@@ -51,27 +57,32 @@ func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrde
 		}
 		isAvailable = (p.Stock - int64(e.Quantity)) >= 0
 		if !isAvailable {
-			errP := fmt.Errorf("product: %v is not available, please check again", e.ProductID)
-			o.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": errP.Error()})
-			return payload.ErrInvalidRequest(errP)
+			err := fmt.Errorf("product: %v is not available, please check again", e.ProductID)
+			o.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
+			prods = make([]entity.Product, 0)
+			break
 		}
 		p.Stock = p.Stock - int64(e.Quantity)
 		prods[i] = p
+	}
+
+	if len(prods) == 0 {
+		prods, err = productRepo.IsAvailableStockByOrderItems(order.OrderItems...)
+		if err != nil {
+			o.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
+			return err
+		}
 	}
 
 	orderRepo := orders.NewOrderRepository(c, o.p, o.p.GormDB)
 	o.p.Logger.Info("CREATE_ORDER", map[string]interface{}{"order": order})
 	if err := orderRepo.Create(&order); err != nil {
 		o.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
-		if err, ok := err.(*payload.AppError); ok {
-			return err
-		}
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return payload.ErrEntityNotFound(entityName, err)
-		}
-		return payload.ErrDB(err)
+		return err
 	}
+	o.p.Logger.Info("CREATE_ORDER_SUCCESSFULLY", map[string]interface{}{"order": order})
 
+	// this goroutine is for updating product on redis
 	go func() {
 		logger, err := zap.NewProduction()
 		if err != nil {
@@ -86,15 +97,27 @@ func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrde
 			err := utils.RedisSetHashGenericKey(redisHashKey, strconv.Itoa(int(e.ID)), e, o.p.Redis.KeyExpirationTime)
 			if err != nil {
 				errMap[strconv.Itoa(int(e.ID))] = err
-				zap.S().Errorw("GOROUTINE_UPDATE_PRODUCT_STOCK", map[string]interface{}{"products": prods})
+				sugar.Errorw("GOROUTINE_UPDATE_PRODUCT_STOCK", map[string]interface{}{"products": prods})
 				go jobs.LoadProductToRedis(o.p)
 			}
 		}
-		if len(errMap) > 0 {
-			sugar.Errorw("GOROUTINE_UPDATE_PRODUCT_STOCK_FAILED", errMap)
-		}
 	}()
-	o.p.Logger.Info("CREATE_ORDER_SUCCESSFULLY", map[string]interface{}{"order": order})
+
+	// this goroutine is for updating product stock
+	go func(prodRepo repository.ProductRepository, gProds []entity.Product) {
+		logger, err := zap.NewProduction()
+		if err != nil {
+			fmt.Println("error trying to initialize logger")
+		}
+		defer logger.Sync()
+		sugar := logger.Sugar()
+
+		sugar.Infow("GOROUTINE_UPDATE_PRODUCT_QUANTITY", map[string]interface{}{"data": gProds})
+		prods, err := prodRepo.UpdateMultiProduct(prods...)
+		if err != nil {
+			sugar.Errorw("GOROUTINE_UPDATE_QUANTITY_PRODUCT_FAILED", map[string]interface{}{"products": prods, "message": err.Error()})
+		}
+	}(productRepo, prods)
 	return nil
 }
 

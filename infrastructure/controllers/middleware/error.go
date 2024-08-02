@@ -16,7 +16,7 @@ func ErrorHandlingMiddleware() gin.HandlerFunc {
 				c.JSON(customErr.StatusCode, customErr)
 				return
 			} else {
-				c.JSON(http.StatusInternalServerError, payload.ErrInternal(err))
+				c.JSON(http.StatusBadRequest, payload.ErrInvalidRequest(err))
 				return
 			}
 		}
