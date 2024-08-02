@@ -2,10 +2,13 @@ package utils
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"go.opentelemetry.io/otel/trace"
 	"pm/domain/entity"
 	"pm/infrastructure/config"
 	"pm/infrastructure/controllers/payload"
+	"pm/infrastructure/implementations/user_roles"
 	"pm/infrastructure/persistences/base"
 	"strconv"
 	"time"
@@ -29,19 +32,40 @@ func InitJwtHelper(p *base.Persistence, jwtConfig config.JwtConfig) {
 	persistence = p
 }
 
-func JwtGenerateJwtToken(user *entity.User) (string, error) {
+func JwtGenerateJwtToken(c *gin.Context, p *base.Persistence, user *entity.User, parentSpan trace.Span) (string, error) {
+	span := persistence.Logger.Start(c, "GENERATE_TOKEN_JWT", p.Logger.SetContextWithSpanFunc())
+	defer span.End()
+	persistence.Logger.Info("STARTING_GENERATE_TOKEN", map[string]interface{}{"data": user})
+
 	expiration := time.Now().Add(10 * 24 * time.Hour).Unix()
 	//expiration := time.Now().Add(jwtTokenExpiration).Unix()
 	arrBytesKey := []byte(jwtSecretKey)
+
 	claims := jwt.MapClaims{
 		subjectKey: strconv.Itoa(int(user.ID)),
 		//userIDKey:    user.ID,
-		userRoleKey:  user.Role,
+		userRoleKey:  user.RoleID,
 		expiredAtKey: expiration,
 	}
+	p.Logger.Info("GENERATE_TOKEN: CLAIMS", map[string]interface{}{
+		"claims": claims,
+	})
+
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(arrBytesKey)
 	if err != nil {
+		p.Logger.Error("GENERATE_TOKEN: FAILED", map[string]interface{}{"error": err.Error()})
 		return "", payload.ErrGenerateToken(err)
+	}
+
+	persistence.Logger.Info("GENERATE_TOKEN: SUCCESSFULLY", map[string]interface{}{
+		"token": token,
+	})
+
+	userRoleRepo := user_roles.NewUserRoleRepository(p.GormDB, p, c)
+	_, err = userRoleRepo.GetUserRoleByID(user.RoleID)
+	if err != nil {
+		p.Logger.Error("GENERATE_TOKEN_JWT_FAILED", map[string]interface{}{"error": err.Error()})
+		return "", err
 	}
 	return token, nil
 }

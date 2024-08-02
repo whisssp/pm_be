@@ -6,12 +6,12 @@ import (
 )
 
 func UserRequestToUser(userRequest *payload.UserRequest) *entity.User {
-	role := userRequest.Role.String()
+	//role := userRequest.Role.String()
 	return &entity.User{
 		Name:     userRequest.Name,
 		Phone:    userRequest.Phone,
 		Email:    userRequest.Email,
 		Password: userRequest.Password,
-		Role:     role,
+		RoleID:   userRequest.Role,
 	}
 }

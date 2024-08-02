@@ -38,9 +38,9 @@ func NewOrderUsecase(p *base.Persistence) OrderUsecase {
 }
 
 func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrderRequest) error {
-	span := o.p.Logger.Start(c, "CREATE_ORDER_USECASES", o.p.Logger.SetContextWithSpanFunc())
+	span := o.p.Logger.Start(c, "CREATE_ORDER: USECASES", o.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
-	o.p.Logger.Info("CREATE_ORDER", map[string]interface{}{"data": reqPayload})
+	o.p.Logger.Info("STARTING: CREATE_ORDER", map[string]interface{}{"data": reqPayload})
 
 	order := mapper.CreateOrderPayloadToOrder(reqPayload)
 	prods := make([]entity.Product, 0)
@@ -58,7 +58,7 @@ func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrde
 		isAvailable = (p.Stock - int64(e.Quantity)) >= 0
 		if !isAvailable {
 			err := fmt.Errorf("product: %v is not available, please check again", e.ProductID)
-			o.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
+			o.p.Logger.Error("CREATE_ORDER: ERROR PRODUCT IS NOT AVAILABLE", map[string]interface{}{"error": err.Error()})
 			prods = make([]entity.Product, 0)
 			break
 		}
@@ -69,7 +69,7 @@ func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrde
 	if len(prods) == 0 {
 		prods, err = productRepo.IsAvailableStockByOrderItems(order.OrderItems...)
 		if err != nil {
-			o.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
+			o.p.Logger.Error("CREATE_ORDER: ERROR PRODUCT IS NOT AVAILABLE", map[string]interface{}{"error": err.Error()})
 			return err
 		}
 	}
@@ -77,10 +77,10 @@ func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrde
 	orderRepo := orders.NewOrderRepository(c, o.p, o.p.GormDB)
 	o.p.Logger.Info("CREATE_ORDER", map[string]interface{}{"order": order})
 	if err := orderRepo.Create(&order); err != nil {
-		o.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
+		o.p.Logger.Error("CREATE_ORDER: ERROR", map[string]interface{}{"error": err.Error()})
 		return err
 	}
-	o.p.Logger.Info("CREATE_ORDER_SUCCESSFULLY", map[string]interface{}{"order": order})
+	o.p.Logger.Info("CREATE_ORDER: SUCCESSFULLY", map[string]interface{}{"order": order})
 
 	// this goroutine is for updating product on redis
 	go func() {

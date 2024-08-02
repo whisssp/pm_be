@@ -20,11 +20,11 @@ func NewProductRoutes(p *base.Persistence, handler *handlers.ProductHandler) *Pr
 func (router *ProductRoutes) RegisterRoutes(routerGroup *gin.RouterGroup) {
 	products := routerGroup.Group("/products")
 	{
-		products.POST("", middleware.AuthMiddleware(router.p, entity.AllRoles[0], entity.AllRoles[1]), router.handler.HandleCreateProduct)
-		products.GET("/search", middleware.AuthMiddleware(router.p, entity.AllRoles[0]), router.handler.HandleGetAllProducts)
+		products.POST("", middleware.AuthMiddleware(router.p, entity.RoleUser), router.handler.HandleCreateProduct)
+		products.GET("/search", middleware.AuthMiddleware(router.p), router.handler.HandleGetAllProducts)
 		products.GET("", router.handler.HandleGetAllProducts)
-		products.GET("/:id", middleware.AuthMiddleware(router.p, entity.AllRoles[1]), router.handler.HandleGetProductByID)
-		products.DELETE("/:id", router.handler.HandleDeleteProductByID)
-		products.PUT("/:id", middleware.AuthMiddleware(router.p, entity.AllRoles[0]), router.handler.HandleUpdateProductByID)
+		products.GET("/:id", middleware.AuthMiddleware(router.p), router.handler.HandleGetProductByID)
+		products.DELETE("/:id", middleware.AuthMiddleware(router.p, entity.RoleAdmin), router.handler.HandleDeleteProductByID)
+		products.PUT("/:id", middleware.AuthMiddleware(router.p), router.handler.HandleUpdateProductByID)
 	}
 }

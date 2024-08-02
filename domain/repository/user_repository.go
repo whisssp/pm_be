@@ -1,6 +1,8 @@
 package repository
 
-import "pm/domain/entity"
+import (
+	"pm/domain/entity"
+)
 
 type UserRepository interface {
 	Create(*entity.User) error

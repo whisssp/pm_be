@@ -25,37 +25,38 @@ func NewUserRepository(c *gin.Context, p *base.Persistence, db *gorm.DB) reposit
 }
 
 func (u UserRepository) GetUserByEmail(email string) (*entity.User, error) {
-	span := u.p.Logger.Start(u.c, "GET_USER_BY_EMAIL_DATABASE")
+	span := u.p.Logger.Start(u.c, "GET_USER_BY_EMAIL: DATABASE", u.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
-	u.p.Logger.Info("GET_USER_BY_EMAIL", map[string]interface{}{"data": email})
+	u.p.Logger.Info("STARTING: GET USER BY EMAIL", map[string]interface{}{"email": email}, u.p.Logger.SetContextWithSpanFunc())
 
 	db := u.db
 	var user entity.User
-	if err := db.Omit("Orders").Where("email = ?", email).Find(&user).Error; err != nil {
-		u.p.Logger.Error("GET_USER_BY_EMAIL_FAILED", map[string]interface{}{"message": err.Error()})
+	if err := db.Omit("Orders").Where("email = ?", email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, payload.ErrEntityNotFound(entityName, err)
+			u.p.Logger.Error("GET_USER_BY_EMAIL: EMAIL DOESN'T EXISTS", map[string]interface{}{"error": entity.ErrEmailNotFound}, u.p.Logger.SetContextWithSpanFunc())
+			return nil, payload.ErrEntityNotFound(entityName, entity.ErrEmailNotFound)
 		}
+		u.p.Logger.Error("GET_USER_BY_EMAIL: ERROR", map[string]interface{}{"error": err.Error()}, u.p.Logger.SetContextWithSpanFunc())
 		return nil, payload.ErrDB(err)
 	}
-	u.p.Logger.Info("GET_USER_BY_EMAIL_SUCCESSFULLY", map[string]interface{}{"data": user})
+	u.p.Logger.Info("GET_USER_BY_EMAIL: SUCCESSFULLY", map[string]interface{}{"user": user}, u.p.Logger.SetContextWithSpanFunc())
 	return &user, nil
 }
 
 func (u UserRepository) Create(user *entity.User) error {
-	span := u.p.Logger.Start(u.c, "CREATE_USER_DATABASE")
+	span := u.p.Logger.Start(u.c, "CREATE_USER: DATABASE")
 	defer span.End()
-	u.p.Logger.Info("CREATE_USER", map[string]interface{}{"data": user})
+	u.p.Logger.Info("STARTING: CREATE USER", map[string]interface{}{"data": user})
 
 	db := u.db
 	if err := db.Debug().Model(&entity.User{}).Create(user).Error; err != nil {
-		u.p.Logger.Info("CREATE_USER_FAILED", map[string]interface{}{"message": err.Error()})
+		u.p.Logger.Info("CREATE_USER: ERROR", map[string]interface{}{"error": err.Error()})
 		if errors.Is(err, gorm.ErrInvalidData) {
 			return payload.ErrInvalidRequest(err)
 		}
 		return payload.ErrDB(err)
 	}
-	u.p.Logger.Info("CREATE_USER_SUCCESSFULLY", map[string]interface{}{"data": user})
+	u.p.Logger.Info("CREATE_USER: SUCCESSFULLY", map[string]interface{}{"user": user})
 	return nil
 }
 
@@ -70,20 +71,21 @@ func (u UserRepository) GetAllUsers() ([]entity.User, error) {
 }
 
 func (u UserRepository) GetUserByID(id int64) (*entity.User, error) {
-	span := u.p.Logger.Start(u.c, "GET_USER_BY_ID_DATABASE")
+	span := u.p.Logger.Start(u.c, "GET_USER_BY_ID: DATABASE")
 	defer span.End()
-	u.p.Logger.Info("GET_USER_BY_ID", map[string]interface{}{"data": id})
+	u.p.Logger.Info("STARTING: GET USER BY ID", map[string]interface{}{"id": id})
 
 	db := u.db
 	var user entity.User
 	if err := db.Where("id = ?", id).Find(&user).Error; err != nil {
-		u.p.Logger.Info("GET_USER_BY_ID_FAILED", map[string]interface{}{"message": err.Error()})
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			u.p.Logger.Info("GET_USER_BY_ID: USER ID DOESN'T EXISTS", map[string]interface{}{"error": err.Error()})
 			return nil, payload.ErrEntityNotFound("users", err)
 		}
+		u.p.Logger.Info("GET_USER_BY_ID: ERROR", map[string]interface{}{"error": err.Error()})
 		return nil, payload.ErrDB(err)
 	}
-	u.p.Logger.Info("GET_USER_BY_ID_SUCCESSFULLY", map[string]interface{}{"data": user})
+	u.p.Logger.Info("GET_USER_BY_ID_SUCCESSFULLY", map[string]interface{}{"user": user})
 	return &user, nil
 }
 

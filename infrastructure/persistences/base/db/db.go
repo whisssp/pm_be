@@ -28,6 +28,7 @@ func Migrate(db *gorm.DB) error {
 	//}
 
 	return db.AutoMigrate(
+		&entity.UserRole{},
 		&entity.Product{},
 		&entity.Category{},
 		&entity.Order{},

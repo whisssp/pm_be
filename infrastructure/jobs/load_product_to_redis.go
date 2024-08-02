@@ -21,10 +21,7 @@ func LoadProductToRedis(p *base.Persistence) {
 	// Use the logger
 	sugar.Debugw("GO_ROUTINE_LOAD_PRODUCT_TO_REDIS")
 	products := make([]entity.Product, 0)
-	err = p.GormDB.Model(&entity.Product{}).Find(&products).Error
-	if err != nil {
-		sugar.Errorw("ERROR_LOAD_PRODUCT_TO_REDIS", map[string]interface{}{"message": err.Error()})
-	}
+	err = p.GormDB.Find(&products).Error
 	if err != nil {
 		sugar.Errorw("ERROR_LOAD_PRODUCT_TO_REDIS", map[string]interface{}{"message": err.Error()})
 	}

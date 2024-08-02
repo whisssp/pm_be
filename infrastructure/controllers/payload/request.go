@@ -1,7 +1,5 @@
 package payload
 
-import "pm/domain/entity"
-
 type CreateProductRequest struct {
 	Name        string  `json:"name" validate:"required"`
 	Description string  `json:"description"`
@@ -31,11 +29,11 @@ type UpdateCategoryRequest struct {
 }
 
 type UserRequest struct {
-	Name     string          `json:"name" validate:"required,max=150"`
-	Email    string          `json:"email" validate:"required,email"`
-	Phone    string          `json:"phone" validate:"required,max=11,e164"`
-	Password string          `json:"password" validate:"required,min=6,max=11"`
-	Role     entity.UserRole `json:"role" validate:"oneof=1 2,required"`
+	Name     string `json:"name" validate:"required,max=150"`
+	Email    string `json:"email" validate:"required,email"`
+	Phone    string `json:"phone" validate:"required,max=11,e164"`
+	Password string `json:"password" validate:"required,min=6,max=11"`
+	Role     int64  `json:"role" validate:"oneof=1 2,required"`
 }
 
 type LoginRequest struct {

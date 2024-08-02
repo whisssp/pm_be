@@ -117,3 +117,9 @@ func (l *LoggerRepo) SetContextWithSpanFunc() Option {
 func (l *LoggerRepo) SetContextWithSpan(span trace.Span) {
 	l.c.Set("otel_context", trace.ContextWithSpan(l.c, span))
 }
+
+func (l *LoggerRepo) UseGivenSpan(span trace.Span) Option {
+	return func(l *LoggerRepo) {
+		l.honeycombRepo.UseGivenSpan(span)
+	}
+}

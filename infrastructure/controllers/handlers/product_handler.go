@@ -40,19 +40,19 @@ func NewProductHandler(p *base.Persistence) *ProductHandler {
 //	@Failure		500						{object}	payload.AppError
 //	@Router			/products 							[post]
 func (handler *ProductHandler) HandleCreateProduct(c *gin.Context) {
-	span := handler.p.Logger.Start(c, "handlers/HandleGetAllProducts", handler.p.Logger.SetContextWithSpanFunc())
+	span := handler.p.Logger.Start(c, "handlers/HandleCreateProduct", handler.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
 
 	var createProdReq payload.CreateProductRequest
 	if err := c.ShouldBindJSON(&createProdReq); err != nil {
 		c.Error(payload.ErrInvalidRequest(err))
-		handler.p.Logger.Error("GET_ALL_PRODUCTS_FAILED", map[string]interface{}{"message": err.Error()})
+		handler.p.Logger.Error("CREATE_PRODUCT: FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 
 	if err := handler.usecase.CreateProduct(c, &createProdReq); err != nil {
 		c.Error(err)
-		handler.p.Logger.Error("GET_ALL_PRODUCTS_FAILED", map[string]interface{}{"message": err.Error()})
+		handler.p.Logger.Error("CREATE_PRODUCT: FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, payload.SuccessResponse(nil, ""))

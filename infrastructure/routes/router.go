@@ -48,7 +48,7 @@ func (s *Server) Run() {
 		fmt.Println("Error adding cron job:", err)
 	}
 
-	go c.Run()
+	//go c.Run()
 
 	err = router.Run(fmt.Sprintf(":%s", s.Port))
 	if err != nil {

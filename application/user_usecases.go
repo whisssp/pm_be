@@ -31,33 +31,33 @@ func NewUserUsecase(p *base.Persistence) UserUsecase {
 func (u userUsecase) Authenticate(c *gin.Context, request *payload.LoginRequest) (*payload.AuthResponse, error) {
 	span := u.p.Logger.Start(c, "AUTHENTICATE_USECASES", u.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
-	u.p.Logger.Info("AUTHENTICATE", map[string]interface{}{"data": request})
+	u.p.Logger.Info("STARTING: AUTHENTICATE", map[string]interface{}{"data": request})
 
 	if err := utils.ValidateReqPayload(request); err != nil {
-		u.p.Logger.Error("AUTHENTICATE_FAILED", map[string]interface{}{"message": err.Error()})
+		u.p.Logger.Error("AUTHENTICATE: INVALID REQUEST", map[string]interface{}{"message": err.Error()}, u.p.Logger.SetContextWithSpanFunc())
 		return nil, payload.ErrInvalidRequest(err)
 	}
 
 	userRepo := users.NewUserRepository(c, u.p, u.p.GormDB)
 	user, err := userRepo.GetUserByEmail(request.Email)
 	if err != nil {
-		u.p.Logger.Error("AUTHENTICATE_FAILED", map[string]interface{}{"message": err.Error()})
+		u.p.Logger.Error("AUTHENTICATE: EMAIL DOESN'T EXISTS", map[string]interface{}{"error": err.Error()})
 		return nil, err
 	}
 
 	if !utils.ComparePasswords([]byte(user.Password), []byte(request.Password)) {
-		u.p.Logger.Error("AUTHENTICATE_FAILED", map[string]interface{}{"message": "password is incorrect"})
+		u.p.Logger.Error("AUTHENTICATE: WRONG PASSWORD", map[string]interface{}{"error": "password is incorrect"}, u.p.Logger.UseGivenSpan(span))
 		return nil, payload.ErrWrongPassword(errors.New("incorrect email or password"))
 	}
 
-	token, err := utils.JwtGenerateJwtToken(user)
+	token, err := utils.JwtGenerateJwtToken(c, u.p, user, span)
 	if err != nil {
-		u.p.Logger.Error("AUTHENTICATE_FAILED", map[string]interface{}{"message": err.Error()})
+		u.p.Logger.Error("AUTHENTICATE: GENERATE TOKEN FAILED", map[string]interface{}{"error": err.Error()})
 		return nil, err
 	}
 
 	authResponse := payload.AuthResponse{Token: token}
-	u.p.Logger.Info("AUTHENTICATE_SUCCESSFULLY", map[string]interface{}{"data": authResponse})
+	u.p.Logger.Info("AUTHENTICATE: SUCCESSFULLY", map[string]interface{}{"authenticate_response": authResponse})
 	return &authResponse, nil
 }
 

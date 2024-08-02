@@ -35,12 +35,12 @@ func NewProductUsecase(p *base.Persistence) ProductUsecase {
 }
 
 func (p productUsecase) CreateProduct(c *gin.Context, reqPayload *payload.CreateProductRequest) error {
-	span := p.p.Logger.Start(c, "CREATE_PRODUCT_USECASES", p.p.Logger.SetContextWithSpanFunc())
+	span := p.p.Logger.Start(c, "CREATE_PRODUCT: USECASES", p.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
-	p.p.Logger.Info("CREATE_PRODUCT", map[string]interface{}{"data": reqPayload})
+	p.p.Logger.Info("STARTING: CREATE_PRODUCT", map[string]interface{}{"data": reqPayload})
 
 	if err := utils.ValidateReqPayload(reqPayload); err != nil {
-		p.p.Logger.Error("CREATE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
+		p.p.Logger.Error("CREATE_PRODUCT: ERROR VALIDATE REQUEST DATA", map[string]interface{}{"error": err.Error()})
 		return payload.ErrValidateFailed(err)
 	}
 
@@ -48,7 +48,7 @@ func (p productUsecase) CreateProduct(c *gin.Context, reqPayload *payload.Create
 	productRepo := products.NewProductRepository(c, p.p, p.p.GormDB)
 	err := productRepo.Create(prod)
 	if err != nil {
-		p.p.Logger.Error("CREATE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
+		p.p.Logger.Error("CREATE_PRODUCT: FAILED", map[string]interface{}{"error": err.Error()})
 		return err
 	}
 
@@ -69,14 +69,14 @@ func (p productUsecase) CreateProduct(c *gin.Context, reqPayload *payload.Create
 		}
 	}(prod)
 
-	p.p.Logger.Info("CREATE_PRODUCT_SUCCESSFULLY", map[string]interface{}{"data": prod.ID})
+	p.p.Logger.Info("CREATE_PRODUCT: SUCCESSFULLY", map[string]interface{}{"data": prod.ID})
 	return nil
 }
 
 func (p productUsecase) GetAllProducts(c *gin.Context, filter *entity.ProductFilter, pagination *entity.Pagination) (*payload.ListProductResponses, error) {
-	span := p.p.Logger.Start(c, "GET_ALL_PRODUCTS_USECASES", p.p.Logger.SetContextWithSpanFunc())
+	span := p.p.Logger.Start(c, "GET_ALL_PRODUCTS: USECASES", p.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
-	p.p.Logger.Info("GET_ALL_PRODUCTS", map[string]interface{}{"params": struct {
+	p.p.Logger.Info("STARTING: GET_ALL_PRODUCTS", map[string]interface{}{"params": struct {
 		Filter     interface{} `json:"filter"`
 		Pagination interface{} `json:"pagination"`
 	}{
@@ -102,25 +102,25 @@ func (p productUsecase) GetAllProducts(c *gin.Context, filter *entity.ProductFil
 				TotalRows:  int64(len(prods)),
 				TotalPages: int(math.Ceil(float64(len(prods) * 1.0 / pagination.GetLimit()))),
 			})
-			p.p.Logger.Info("GET_ALL_PRODUCTS_SUCCESSFULLY", map[string]interface{}{"data": listProdResponse})
+			p.p.Logger.Info("GET_ALL_PRODUCTS: SUCCESSFULLY", map[string]interface{}{"data": listProdResponse})
 			return &listProdResponse, nil
 		}
 	}
 	prods, err := productRepo.GetAllProducts(filter, pagination)
 	if err != nil {
-		p.p.Logger.Info("GET_ALL_PRODUCTS_FAILED", map[string]interface{}{"message": err.Error()})
+		p.p.Logger.Info("GET_ALL_PRODUCTS: ERROR", map[string]interface{}{"error": err.Error()})
 		return nil, err
 	}
 
 	listProdResponse = mapper.ProdsToListProdsResponse(prods, pagination)
-	p.p.Logger.Info("GET_ALL_PRODUCTS_SUCCESSFULLY", map[string]interface{}{"data": listProdResponse})
+	p.p.Logger.Info("GET_ALL_PRODUCTS: SUCCESSFULLY", map[string]interface{}{"list_product_response": listProdResponse})
 	return &listProdResponse, nil
 }
 
 func (p productUsecase) GetProductByID(c *gin.Context, id int64) (*payload.ProductResponse, error) {
-	span := p.p.Logger.Start(c, "GET_PRODUCT_BY_ID_USECASES", p.p.Logger.SetContextWithSpanFunc())
+	span := p.p.Logger.Start(c, "GET_PRODUCT_BY_ID: USECASES", p.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
-	p.p.Logger.Info("GET_PRODUCT", map[string]interface{}{"data": id})
+	p.p.Logger.Info("STARTING: GET_PRODUCT", map[string]interface{}{"data": id})
 
 	var prod entity.Product
 	utils.RedisGetHashGenericKey(redisHashKey, strconv.FormatInt(int64(prod.ID), 10), &prod)
@@ -133,24 +133,24 @@ func (p productUsecase) GetProductByID(c *gin.Context, id int64) (*payload.Produ
 		//	return nil, payload.ErrEntityNotFound(entityName, err)
 		//}
 		prodResponse := mapper.ProductToProductResponse(&prod)
-		p.p.Logger.Info("GET_PRODUCT_SUCCESSFULLY", map[string]interface{}{"data": prodResponse})
+		p.p.Logger.Info("GET_PRODUCT: SUCCESSFULLY", map[string]interface{}{"product_response": prod})
 		return &prodResponse, nil
 	}
 
 	prodPointer, err := productRepo.GetProductByID(id)
 	if err != nil {
-		p.p.Logger.Error("GET_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
+		p.p.Logger.Error("GET_PRODUCT: ERROR", map[string]interface{}{"error": err.Error()})
 		return nil, err
 	}
 	prodResponse := mapper.ProductToProductResponse(prodPointer)
-	p.p.Logger.Info("GET_PRODUCT_SUCCESSFULLY", map[string]interface{}{"data": prodResponse})
+	p.p.Logger.Info("GET_PRODUCT: SUCCESSFULLY", map[string]interface{}{"product_response": prodResponse})
 	return &prodResponse, nil
 }
 
 func (p productUsecase) DeleteProductByID(c *gin.Context, id int64) error {
-	span := p.p.Logger.Start(c, "DELETE_PRODUCT_BY_ID_USECASES", p.p.Logger.SetContextWithSpanFunc())
+	span := p.p.Logger.Start(c, "DELETE_PRODUCT_BY_ID: USECASES", p.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
-	p.p.Logger.Info("DELETE_PRODUCT", map[string]interface{}{"data": id})
+	p.p.Logger.Info("STARTING: DELETE_PRODUCT", map[string]interface{}{"id": id})
 
 	err := utils.RedisRemoveHashGenericKey(redisHashKey, strconv.FormatInt(int64(id), 10))
 	if err != nil {
@@ -160,23 +160,23 @@ func (p productUsecase) DeleteProductByID(c *gin.Context, id int64) error {
 	productRepo := products.NewProductRepository(c, p.p, p.p.GormDB)
 	prod, err := productRepo.GetProductByID(id)
 	if err != nil {
-		p.p.Logger.Info("DELETE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
-		return payload.ErrEntityNotFound(entityName, err)
+		p.p.Logger.Info("DELETE_PRODUCT: PRODUCT NOT FOUND", map[string]interface{}{"error": err.Error()})
+		return err
 	}
 	err = productRepo.DeleteProduct(prod)
 	if err != nil {
-		p.p.Logger.Info("DELETE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
+		p.p.Logger.Info("DELETE_PRODUCT: ERROR", map[string]interface{}{"error": err.Error()})
 		return err
 	}
 
-	p.p.Logger.Info("DELETE_PRODUCT_SUCCESSFULLY", map[string]interface{}{})
+	p.p.Logger.Info("DELETE_PRODUCT: SUCCESSFULLY", map[string]interface{}{})
 	return nil
 }
 
 func (p productUsecase) UpdateProductByID(c *gin.Context, id int64, updatePayload *payload.UpdateProductRequest) (*payload.ProductResponse, error) {
-	span := p.p.Logger.Start(c, "UPDATE_PRODUCT_USECASES", p.p.Logger.SetContextWithSpanFunc())
+	span := p.p.Logger.Start(c, "UPDATE_PRODUCT: USECASES", p.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
-	p.p.Logger.Info("UPDATE_PRODUCT", map[string]interface{}{"data": struct {
+	p.p.Logger.Info("STARTING: UPDATE_PRODUCT", map[string]interface{}{"data": struct {
 		ID      interface{}
 		Payload interface{}
 	}{
@@ -187,14 +187,14 @@ func (p productUsecase) UpdateProductByID(c *gin.Context, id int64, updatePayloa
 	productRepo := products.NewProductRepository(c, p.p, p.p.GormDB)
 	prod, err := productRepo.GetProductByID(id)
 	if err != nil {
-		p.p.Logger.Error("UPDATE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
-		return nil, payload.ErrEntityNotFound(entityName, err)
+		p.p.Logger.Error("UPDATE_PRODUCT: ERROR: PRODUCT NOT FOUND", map[string]interface{}{"error": err.Error()})
+		return nil, err
 	}
 	updatePayload.ID = id
 	mapper.UpdateProduct(prod, updatePayload)
 	_, err = productRepo.Update(prod)
 	if err != nil {
-		p.p.Logger.Error("UPDATE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
+		p.p.Logger.Error("UPDATE_PRODUCT: ERROR", map[string]interface{}{"error": err.Error()})
 		return nil, payload.ErrCannotUpdateEntity(entityName, err)
 	}
 
@@ -203,7 +203,7 @@ func (p productUsecase) UpdateProductByID(c *gin.Context, id int64, updatePayloa
 		fmt.Printf("error updating product: ID: %v - error: %v", id, err)
 	}
 	prodResponse := mapper.ProductToProductResponse(prod)
-	p.p.Logger.Error("UPDATE_PRODUCT_SUCCESSFULLY", map[string]interface{}{"data": prodResponse})
+	p.p.Logger.Error("UPDATE_PRODUCT: SUCCESSFULLY", map[string]interface{}{"product_response": prodResponse})
 	return &prodResponse, nil
 }
 
