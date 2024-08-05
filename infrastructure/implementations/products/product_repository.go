@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 	"math"
 	"pm/domain/entity"
-	"pm/domain/repository"
+	"pm/domain/repository/products"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/persistences/base"
 )
@@ -23,7 +23,7 @@ type ProductRepository struct {
 	c  *gin.Context
 }
 
-func NewProductRepository(c *gin.Context, p *base.Persistence, db *gorm.DB) repository.ProductRepository {
+func NewProductRepository(c *gin.Context, p *base.Persistence, db *gorm.DB) products.ProductRepository {
 	if c == nil {
 		return &ProductRepository{
 			db: db,
@@ -34,7 +34,7 @@ func NewProductRepository(c *gin.Context, p *base.Persistence, db *gorm.DB) repo
 	return &ProductRepository{db, p, c}
 }
 
-func (prodRepo *ProductRepository) Create(product *entity.Product) error {
+func (prodRepo *ProductRepository) Create(parentSpan trace.Span, product *entity.Product) error {
 	//if prodRepo.c == nil {
 	//	db := prodRepo.db
 	//	err := db.Create(product).Error
@@ -44,43 +44,43 @@ func (prodRepo *ProductRepository) Create(product *entity.Product) error {
 	//	return nil
 	//}
 
-	span := prodRepo.p.Logger.Start(prodRepo.c, "CREATE_PRODUCT_DATABASE", prodRepo.p.Logger.SetContextWithSpanFunc())
+	span := prodRepo.p.Logger.Start(prodRepo.c, "CREATE_PRODUCT_DATABASE", prodRepo.p.Logger.UseGivenSpan(parentSpan))
 	defer span.End()
-	prodRepo.p.Logger.Info("CREATE_PRODUCT", map[string]interface{}{"data": product})
+	prodRepo.p.Logger.Info("CREATE_PRODUCT", map[string]interface{}{"data": product}, prodRepo.p.Logger.UseGivenSpan(span))
 
 	db := prodRepo.db
 	err := db.Create(&product).Error
 	if err != nil {
-		prodRepo.p.Logger.Error("CREATE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
+		prodRepo.p.Logger.Error("CREATE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()}, prodRepo.p.Logger.UseGivenSpan(span))
 		return err
 	}
-	prodRepo.p.Logger.Info("CREATE_PRODUCT_SUCCESSFULLY", map[string]interface{}{"data": product.ID})
+	prodRepo.p.Logger.Info("CREATE_PRODUCT_SUCCESSFULLY", map[string]interface{}{"data": product.ID}, prodRepo.p.Logger.UseGivenSpan(span))
 	return nil
 }
 
-func (prodRepo *ProductRepository) Update(product *entity.Product) (*entity.Product, error) {
-	span := prodRepo.p.Logger.Start(prodRepo.c, "UPDATE_PRODUCT_DATABASE", prodRepo.p.Logger.SetContextWithSpanFunc())
+func (prodRepo *ProductRepository) Update(parentSpan trace.Span, product *entity.Product) (*entity.Product, error) {
+	span := prodRepo.p.Logger.Start(prodRepo.c, "UPDATE_PRODUCT_DATABASE", prodRepo.p.Logger.UseGivenSpan(parentSpan))
 	defer span.End()
-	prodRepo.p.Logger.Info("UPDATE_PRODUCT", map[string]interface{}{"data": product})
+	prodRepo.p.Logger.Info("UPDATE_PRODUCT", map[string]interface{}{"data": product}, prodRepo.p.Logger.UseGivenSpan(span))
 	db := prodRepo.db
 	if err := db.Debug().Model(&product).Updates(&product).Error; err != nil {
-		prodRepo.p.Logger.Error("UPDATE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
+		prodRepo.p.Logger.Error("UPDATE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()}, prodRepo.p.Logger.UseGivenSpan(span))
 		return nil, err
 	}
 
-	prodRepo.p.Logger.Info("UPDATE_PRODUCT_SUCCESSFULLY", map[string]interface{}{"data": product})
+	prodRepo.p.Logger.Info("UPDATE_PRODUCT_SUCCESSFULLY", map[string]interface{}{"data": product}, prodRepo.p.Logger.UseGivenSpan(span))
 	return product, nil
 }
 
-func (prodRepo *ProductRepository) UpdateMultiProduct(products ...entity.Product) ([]entity.Product, error) {
-	span := prodRepo.p.Logger.Start(prodRepo.c, "UPDATE_PRODUCT_STOCK_DATABASE")
+func (prodRepo *ProductRepository) UpdateMultiProduct(parentSpan trace.Span, products ...entity.Product) ([]entity.Product, error) {
+	span := prodRepo.p.Logger.Start(prodRepo.c, "UPDATE_PRODUCT_STOCK_DATABASE", prodRepo.p.Logger.UseGivenSpan(parentSpan))
 	defer span.End()
 
 	tx := prodRepo.db.Begin()
-	prodRepo.p.Logger.Info("UPDATE_PRODUCT_STOCK", map[string]interface{}{"products": products})
+	prodRepo.p.Logger.Info("UPDATE_PRODUCT_STOCK", map[string]interface{}{"products": products}, prodRepo.p.Logger.UseGivenSpan(span))
 	for index, p := range products {
 		if err := tx.Model(&products[index]).Update("stock", p.Stock).Error; err != nil {
-			prodRepo.p.Logger.Error("UPDATE_PRODUCT_STOCK_FAILED", map[string]interface{}{"product": p, "message": err.Error()})
+			prodRepo.p.Logger.Error("UPDATE_PRODUCT_STOCK_FAILED", map[string]interface{}{"product": p, "message": err.Error()}, prodRepo.p.Logger.UseGivenSpan(span))
 			tx.Rollback()
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, payload.ErrEntityNotFound(entityName, err)
@@ -90,34 +90,34 @@ func (prodRepo *ProductRepository) UpdateMultiProduct(products ...entity.Product
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		prodRepo.p.Logger.Error("UPDATE_PRODUCT_STOCK_FAILED", map[string]interface{}{"products": products, "message": err.Error()})
+		prodRepo.p.Logger.Error("UPDATE_PRODUCT_STOCK_FAILED", map[string]interface{}{"products": products, "message": err.Error()}, prodRepo.p.Logger.UseGivenSpan(span))
 		return nil, payload.ErrDB(err)
 	}
 	prodRepo.p.Logger.Error("UPDATE_PRODUCT_STOCK_SUCCESSFULLY", map[string]interface{}{"products": products})
 	return products, nil
 }
 
-func (prodRepo *ProductRepository) GetProductByID(id int64) (*entity.Product, error) {
-	span := prodRepo.p.Logger.Start(prodRepo.c, "GET_PRODUCT_BY_ID_DATABASE")
+func (prodRepo *ProductRepository) GetProductByID(parentSpan trace.Span, id int64) (*entity.Product, error) {
+	span := prodRepo.p.Logger.Start(prodRepo.c, "GET_PRODUCT_BY_ID_DATABASE", prodRepo.p.Logger.UseGivenSpan(parentSpan))
 	defer span.End()
-	prodRepo.p.Logger.Info("GET_PRODUCT", map[string]interface{}{"data": id})
+	prodRepo.p.Logger.Info("GET_PRODUCT", map[string]interface{}{"data": id}, prodRepo.p.Logger.UseGivenSpan(span))
 
 	db := prodRepo.db
 	var product entity.Product
 	if err := db.Model(&entity.Product{}).Where("id = ?", id).First(&product).Error; err != nil {
-		prodRepo.p.Logger.Info("GET_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
+		prodRepo.p.Logger.Info("GET_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()}, prodRepo.p.Logger.UseGivenSpan(span))
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, payload.ErrEntityNotFound(entityName, err)
 		}
 		return nil, payload.ErrDB(err)
 	}
 
-	prodRepo.p.Logger.Info("GET_PRODUCT_SUCCESSFULLY", map[string]interface{}{"data": product})
+	prodRepo.p.Logger.Info("GET_PRODUCT_SUCCESSFULLY", map[string]interface{}{"data": product}, prodRepo.p.Logger.UseGivenSpan(span))
 	return &product, nil
 }
 
-func (prodRepo *ProductRepository) GetAllProducts(filter *entity.ProductFilter, pagination *entity.Pagination) ([]entity.Product, error) {
-	span := prodRepo.p.Logger.Start(prodRepo.c, "GET_ALL_PRODUCTS_DATABASE")
+func (prodRepo *ProductRepository) GetAllProducts(parentSpan trace.Span, filter *entity.ProductFilter, pagination *entity.Pagination) ([]entity.Product, error) {
+	span := prodRepo.p.Logger.Start(prodRepo.c, "GET_ALL_PRODUCTS_DATABASE", prodRepo.p.Logger.UseGivenSpan(parentSpan))
 	defer span.End()
 	prodRepo.p.Logger.Info("GET_ALL_PRODUCTS", map[string]interface{}{"params": struct {
 		Filter     interface{} `json:"filter"`
@@ -136,39 +136,39 @@ func (prodRepo *ProductRepository) GetAllProducts(filter *entity.ProductFilter, 
 	}
 	if pagination != nil {
 		if err := db.Scopes(paginate(pagination)).Find(&products).Error; err != nil {
-			prodRepo.p.Logger.Error("GET_ALL_PRODUCTS_FAILED", map[string]interface{}{"message": err.Error()})
+			prodRepo.p.Logger.Error("GET_ALL_PRODUCTS_FAILED", map[string]interface{}{"message": err.Error()}, prodRepo.p.Logger.UseGivenSpan(span))
 			return nil, payload.ErrDB(err)
 		}
 		pagination.TotalRows = totalRows
 		totalPages := int(math.Ceil(float64(totalRows) / float64(pagination.Limit)))
 		pagination.TotalPages = totalPages
-		prodRepo.p.Logger.Info("GET_ALL_PRODUCTS_SUCCESSFULLY", map[string]interface{}{"products": products, "filter": filter, "pagination": pagination})
+		prodRepo.p.Logger.Info("GET_ALL_PRODUCTS_SUCCESSFULLY", map[string]interface{}{"products": products, "filter": filter, "pagination": pagination}, prodRepo.p.Logger.UseGivenSpan(span))
 		return products, nil
 	}
 	if err := db.Find(&products).Error; err != nil {
-		prodRepo.p.Logger.Error("GET_ALL_PRODUCTS_FAILED", map[string]interface{}{"message": err.Error()})
+		prodRepo.p.Logger.Error("GET_ALL_PRODUCTS_FAILED", map[string]interface{}{"message": err.Error()}, prodRepo.p.Logger.UseGivenSpan(span))
 		return nil, payload.ErrDB(err)
 	}
 
-	prodRepo.p.Logger.Info("GET_ALL_PRODUCTS_SUCCESSFULLY", map[string]interface{}{"products": products, "filter": filter, "pagination": pagination})
+	prodRepo.p.Logger.Info("GET_ALL_PRODUCTS_SUCCESSFULLY", map[string]interface{}{"products": products, "filter": filter, "pagination": pagination}, prodRepo.p.Logger.UseGivenSpan(span))
 	return products, nil
 }
 
-func (prodRepo *ProductRepository) DeleteProduct(product *entity.Product) error {
-	span := prodRepo.p.Logger.Start(prodRepo.c, "DELETE_PRODUCT_DATABASE")
+func (prodRepo *ProductRepository) DeleteProduct(parentSpan trace.Span, product *entity.Product) error {
+	span := prodRepo.p.Logger.Start(prodRepo.c, "DELETE_PRODUCT_DATABASE", prodRepo.p.Logger.UseGivenSpan(parentSpan))
 	defer span.End()
-	prodRepo.p.Logger.Info("DELETE_PRODUCT", map[string]interface{}{"data": product})
+	prodRepo.p.Logger.Info("DELETE_PRODUCT", map[string]interface{}{"data": product}, prodRepo.p.Logger.UseGivenSpan(span))
 
 	db := prodRepo.db
 	if err := db.Debug().Model(&product).Delete(&product).Error; err != nil {
-		prodRepo.p.Logger.Error("DELETE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
+		prodRepo.p.Logger.Error("DELETE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()}, prodRepo.p.Logger.UseGivenSpan(span))
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return payload.ErrEntityNotFound(entityName, err)
 		}
 		return payload.ErrDB(err)
 	}
 
-	prodRepo.p.Logger.Info("DELETE_PRODUCT_SUCCESSFULLY", map[string]interface{}{"data": product})
+	prodRepo.p.Logger.Info("DELETE_PRODUCT_SUCCESSFULLY", map[string]interface{}{"data": product}, prodRepo.p.Logger.UseGivenSpan(span))
 	return nil
 }
 
@@ -195,16 +195,16 @@ func (prodRepo *ProductRepository) GetProductByOrderItem(parentSpan trace.Span, 
 // Param: array OrderItem
 // return: ([]Product, nil) when all the product in order is available, (nil, error) when one of products is not available
 */
-func (prodRepo *ProductRepository) IsAvailableStockByOrderItems(orderItems ...entity.OrderItem) ([]entity.Product, error) {
-	span := prodRepo.p.Logger.Start(prodRepo.c, "CHECK_STOCK")
+func (prodRepo *ProductRepository) IsAvailableStockByOrderItems(parentSpan trace.Span, orderItems ...entity.OrderItem) ([]entity.Product, error) {
+	span := prodRepo.p.Logger.Start(prodRepo.c, "CHECK_STOCK", prodRepo.p.Logger.UseGivenSpan(parentSpan))
 	defer span.End()
-	prodRepo.p.Logger.Info("CHECK_STOCK", map[string]interface{}{"data": orderItems})
+	prodRepo.p.Logger.Info("CHECK_STOCK", map[string]interface{}{"data": orderItems}, prodRepo.p.Logger.UseGivenSpan(span))
 
 	ps := make([]entity.Product, 0)
 	for _, o := range orderItems {
 		var p entity.Product
 		if err := prodRepo.p.GormDB.Model(&entity.Product{}).Where("id = ?", o.ProductID).First(&p).Error; err != nil {
-			prodRepo.p.Logger.Error("CHECK_STOCK_FAILED", map[string]interface{}{"message": err.Error()})
+			prodRepo.p.Logger.Error("CHECK_STOCK_FAILED", map[string]interface{}{"message": err.Error()}, prodRepo.p.Logger.UseGivenSpan(span))
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, payload.ErrEntityNotFound("products", err)
 			}
@@ -212,13 +212,13 @@ func (prodRepo *ProductRepository) IsAvailableStockByOrderItems(orderItems ...en
 		}
 		if p.Stock-int64(o.Quantity) < 0 {
 			err := fmt.Errorf("the product %v is out of stock", o.ProductID)
-			prodRepo.p.Logger.Error("CHECK_STOCK_FAILED", map[string]interface{}{"message": err.Error()})
+			prodRepo.p.Logger.Error("CHECK_STOCK_FAILED", map[string]interface{}{"message": err.Error()}, prodRepo.p.Logger.UseGivenSpan(span))
 			return nil, payload.ErrInvalidRequest(err)
 		}
 		ps = append(ps, p)
 	}
 
-	prodRepo.p.Logger.Info("CHECK_STOCK_SUCCESSFULLY", map[string]interface{}{"products": ps})
+	prodRepo.p.Logger.Info("CHECK_STOCK_SUCCESSFULLY", map[string]interface{}{"products": ps}, prodRepo.p.Logger.UseGivenSpan(span))
 	return ps, nil
 }
 

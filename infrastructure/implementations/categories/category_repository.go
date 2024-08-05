@@ -3,10 +3,11 @@ package categories
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/otel/trace"
 	"gorm.io/gorm"
 	"math"
 	"pm/domain/entity"
-	"pm/domain/repository"
+	"pm/domain/repository/categories"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/persistences/base"
 )
@@ -17,33 +18,33 @@ type CategoryRepository struct {
 	c  *gin.Context
 }
 
-func NewCategoryRepository(c *gin.Context, p *base.Persistence, db *gorm.DB) repository.CategoryRepository {
+func NewCategoryRepository(c *gin.Context, p *base.Persistence, db *gorm.DB) categories.CategoryRepository {
 	return CategoryRepository{db, p, c}
 }
 
-func (c CategoryRepository) Create(category *entity.Category) error {
-	span := c.p.Logger.Start(c.c, "CREATE_CATEGORY_DATABASE")
+func (c CategoryRepository) Create(parentSpan trace.Span, category *entity.Category) error {
+	span := c.p.Logger.Start(c.c, "CREATE_CATEGORY_DATABASE", c.p.Logger.UseGivenSpan(parentSpan))
 	defer span.End()
-	c.p.Logger.Info("CREATE_CATEGORY", map[string]interface{}{"data": category})
+	c.p.Logger.Info("CREATE_CATEGORY", map[string]interface{}{"category": category})
 
 	db := c.db
 	if err := db.Create(&category).Error; err != nil {
-		c.p.Logger.Error("CREATE_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
+		c.p.Logger.Error("CREATE_CATEGORY: ERROR", map[string]interface{}{"error": err.Error()})
 		return payload.ErrDB(err)
 	}
 
-	c.p.Logger.Info("CREATE_CATEGORY_SUCCESSFULLY", map[string]interface{}{"data": category})
+	c.p.Logger.Info("CREATE_CATEGORY_SUCCESSFULLY", map[string]interface{}{"category": category})
 	return nil
 }
 
-func (c CategoryRepository) Update(category *entity.Category) (*entity.Category, error) {
-	span := c.p.Logger.Start(c.c, "UPDATE_CATEGORY_DATABASE")
+func (c CategoryRepository) Update(parentSpan trace.Span, category *entity.Category) (*entity.Category, error) {
+	span := c.p.Logger.Start(c.c, "UPDATE_CATEGORY_DATABASE", c.p.Logger.UseGivenSpan(parentSpan))
 	defer span.End()
-	c.p.Logger.Info("UPDATE_CATEGORY", map[string]interface{}{"data": category})
+	c.p.Logger.Info("UPDATE_CATEGORY", map[string]interface{}{"category": category})
 
 	db := c.db
 	if err := db.Debug().Model(&category).Updates(category).Error; err != nil {
-		c.p.Logger.Info("UPDATE_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
+		c.p.Logger.Info("UPDATE_CATEGORY: ERROR", map[string]interface{}{"error": err.Error()})
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, payload.ErrEntityNotFound("products", err)
 
@@ -51,28 +52,31 @@ func (c CategoryRepository) Update(category *entity.Category) (*entity.Category,
 		return nil, payload.ErrDB(err)
 	}
 
-	c.p.Logger.Info("UPDATE_CATEGORY_SUCCESSFULLY", map[string]interface{}{"data": category})
+	c.p.Logger.Info("UPDATE_CATEGORY_SUCCESSFULLY", map[string]interface{}{"category": category})
 	return category, nil
 }
 
-func (c CategoryRepository) GetCategoryByID(id int64) (*entity.Category, error) {
-	span := c.p.Logger.Start(c.c, "GET_CATEGORY_DATABASE")
+func (c CategoryRepository) GetCategoryByID(parentSpan trace.Span, id int64) (*entity.Category, error) {
+	span := c.p.Logger.Start(c.c, "GET_CATEGORY_DATABASE", c.p.Logger.UseGivenSpan(parentSpan))
 	defer span.End()
-	c.p.Logger.Info("GET_CATEGORY", map[string]interface{}{"data": id})
+	c.p.Logger.Info("GET_CATEGORY", map[string]interface{}{"data": id}, c.p.Logger.UseGivenSpan(span))
 
 	var category entity.Category
 	db := c.db
 	if err := db.Where("id = ?", id).First(&category).Error; err != nil {
-		c.p.Logger.Error("GET_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
+		c.p.Logger.Error("GET_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()}, c.p.Logger.UseGivenSpan(span))
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, payload.ErrEntityNotFound("categories", err)
+		}
 		return nil, payload.ErrDB(err)
 	}
 
-	c.p.Logger.Info("GET_CATEGORY_SUCCESSFULLY", map[string]interface{}{"data": category})
+	c.p.Logger.Info("GET_CATEGORY_SUCCESSFULLY", map[string]interface{}{"data": category}, c.p.Logger.UseGivenSpan(span))
 	return &category, nil
 }
 
-func (c CategoryRepository) GetAllCategories(filter *entity.CategoryFilter, pagination *entity.Pagination) ([]entity.Category, error) {
-	span := c.p.Logger.Start(c.c, "GET_ALL_CATEGORIES_DATABASE")
+func (c CategoryRepository) GetAllCategories(parentSpan trace.Span, filter *entity.CategoryFilter, pagination *entity.Pagination) ([]entity.Category, error) {
+	span := c.p.Logger.Start(c.c, "GET_ALL_CATEGORIES_DATABASE", c.p.Logger.UseGivenSpan(parentSpan))
 	defer span.End()
 	c.p.Logger.Info("GET_ALL_CATEGORIES", map[string]interface{}{
 		"params": struct {
@@ -101,8 +105,8 @@ func (c CategoryRepository) GetAllCategories(filter *entity.CategoryFilter, pagi
 	return categories, nil
 }
 
-func (c CategoryRepository) DeleteCategory(category *entity.Category) error {
-	span := c.p.Logger.Start(c.c, "DELETE_CATEGORY_DATABASE")
+func (c CategoryRepository) DeleteCategory(parentSpan trace.Span, category *entity.Category) error {
+	span := c.p.Logger.Start(c.c, "DELETE_CATEGORY_DATABASE", c.p.Logger.UseGivenSpan(parentSpan))
 	defer span.End()
 	c.p.Logger.Info("DELETE_CATEGORY", map[string]interface{}{"data": category})
 

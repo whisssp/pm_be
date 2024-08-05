@@ -3,13 +3,13 @@ package loggers
 import (
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel/trace"
-	"pm/domain/repository"
+	"pm/domain/repository/loggers"
 	honeycomb "pm/infrastructure/implementations/loggers/honeycomb"
 	"pm/infrastructure/implementations/loggers/zap"
 )
 
 type LoggerRepo struct {
-	loggers []repository.LoggerRepository
+	loggers []loggers.LoggerRepository
 	c       *gin.Context
 	//span          trace.Span
 	honeycombRepo *honeycomb.HoneycombRepository
@@ -24,9 +24,18 @@ const (
 type Option func(*LoggerRepo)
 
 // NewLoggerRepository creates a new logger repository based on the specified channels
-func NewLoggerRepository(channels []string) LoggerRepo {
-	var loggers []repository.LoggerRepository
+func NewLoggerRepository(channels []string) *LoggerRepo {
+	var loggers []loggers.LoggerRepository
 	var honeycombRepo *honeycomb.HoneycombRepository
+
+	if len(channels) < 1 {
+		return &LoggerRepo{
+			loggers:       loggers,
+			c:             nil,
+			honeycombRepo: honeycombRepo,
+		}
+	}
+
 	for _, channel := range channels {
 		switch channel {
 		case Zap:
@@ -44,7 +53,7 @@ func NewLoggerRepository(channels []string) LoggerRepo {
 	//if honeycombRepo != nil {
 	//	span = honeycombRepo.GetSpan()
 	//}
-	return LoggerRepo{loggers: loggers, c: nil, honeycombRepo: honeycombRepo}
+	return &LoggerRepo{loggers: loggers, c: nil, honeycombRepo: honeycombRepo}
 }
 
 // Debug logs a debug message

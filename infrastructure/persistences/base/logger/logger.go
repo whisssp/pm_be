@@ -12,5 +12,5 @@ func NewLogger() (*loggers.LoggerRepo, error) {
 	logChannelsList := strings.Split(logChannels, ",")
 	logger := loggers.NewLoggerRepository(logChannelsList)
 
-	return &logger, nil
+	return logger, nil
 }

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/redis/go-redis/v9"
-	"pm/domain/repository"
+	"pm/domain/repository/caches"
 	"time"
 )
 
@@ -14,7 +14,7 @@ type RedisCacheRepository struct {
 	ctx context.Context
 }
 
-func NewRedisCacheRepository(rdb *redis.Client, ctx context.Context) repository.RedisCacheRepository {
+func NewRedisCacheRepository(rdb *redis.Client, ctx context.Context) caches.RedisCacheRepository {
 	if rdb == nil {
 		fmt.Println("implementations/cache: error nil redis.Client")
 		return nil

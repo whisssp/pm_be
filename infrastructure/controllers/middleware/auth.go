@@ -55,7 +55,7 @@ func AuthMiddleware(p *base.Persistence, roles ...int64) gin.HandlerFunc {
 			return
 		}
 		idInt, _ := strconv.ParseInt(id.(string), 10, 64)
-		user, err := users.NewUserRepository(c, p, p.GormDB).GetUserByID(idInt)
+		user, err := users.NewUserRepository(c, p, p.GormDB).GetUserByID(span, idInt)
 		if err != nil {
 			errU := payload.NewUnauthorized(errors.New("unauthorized"), "Not found the user from token", "ErrInvalidClaims")
 			p.Logger.Error("AUTHENTICATION_FAILED", map[string]interface{}{"error": errU.Error()})

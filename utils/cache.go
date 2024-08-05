@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"github.com/bytedance/sonic"
 	"github.com/redis/go-redis/v9"
-	"pm/domain/repository"
+	"pm/domain/repository/caches"
 	"pm/infrastructure/implementations/cache"
 	"pm/infrastructure/persistences/base"
 	"time"
 )
 
 var rd2Driver *redis.Client = nil
-var rd2Repo repository.RedisCacheRepository = nil
+var rd2Repo caches.RedisCacheRepository = nil
 var ctx context.Context = nil
 var expirationTime time.Duration = time.Minute
 

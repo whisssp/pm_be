@@ -40,7 +40,7 @@ func (h *UserHandler) HandleAuthenticate(c *gin.Context) {
 
 	response, err := h.userUsecase.Authenticate(c, &loginRequest)
 	if err != nil {
-		c.Error(payload.ErrInvalidRequest(err))
+		c.Error(err)
 		h.p.Logger.Error("AUTHENTICATE_FAILED", map[string]interface{}{
 			"message": err.Error(),
 		})

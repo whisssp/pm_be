@@ -55,6 +55,8 @@ func (handler *ProductHandler) HandleCreateProduct(c *gin.Context) {
 		handler.p.Logger.Error("CREATE_PRODUCT: FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
+
+	handler.p.Logger.Info("CREATE_PRODUCT: SUCCESSFULLY", map[string]interface{}{})
 	c.JSON(http.StatusOK, payload.SuccessResponse(nil, ""))
 }
 
@@ -98,6 +100,7 @@ func (handler *ProductHandler) HandleGetAllProducts(c *gin.Context) {
 		return
 	}
 
+	handler.p.Logger.Info("GET_ALL_PRODUCTS_SUCCESSFULLY", map[string]interface{}{"list_products_response": prods})
 	c.JSON(http.StatusOK, payload.SuccessResponse(prods, ""))
 }
 
@@ -121,17 +124,18 @@ func (handler *ProductHandler) HandleGetProductByID(c *gin.Context) {
 	if id == 0 {
 		err := fmt.Errorf("[id] parameter is required")
 		c.Error(payload.ErrInvalidRequest(err))
-		handler.p.Logger.Error("GET_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
+		handler.p.Logger.Error("GET_PRODUCT_FAILED", map[string]interface{}{"error": err.Error()})
 		return
 	}
 
 	prod, err := handler.usecase.GetProductByID(c, id)
 	if err != nil {
 		c.Error(err)
-		handler.p.Logger.Error("GET_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
+		handler.p.Logger.Error("GET_PRODUCT_FAILED", map[string]interface{}{"error": err.Error()})
 		return
 	}
 
+	handler.p.Logger.Info("GET_PRODUCT_SUCCESSFULLY", map[string]interface{}{"product": prod})
 	c.JSON(http.StatusOK, payload.SuccessResponse(prod, ""))
 }
 
@@ -166,6 +170,7 @@ func (handler *ProductHandler) HandleDeleteProductByID(c *gin.Context) {
 		handler.p.Logger.Error("DELETE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
+	handler.p.Logger.Info("DELETE_PRODUCT_SUCCESSFULLY", map[string]interface{}{"id": id})
 	c.JSON(http.StatusOK, payload.SuccessResponse(nil, ""))
 }
 
@@ -208,6 +213,7 @@ func (handler *ProductHandler) HandleUpdateProductByID(c *gin.Context) {
 		handler.p.Logger.Error("UPDATE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
+	handler.p.Logger.Info("UPDATE_PRODUCT_SUCCESSFULLY", map[string]interface{}{"product_response": prodUpdated})
 	c.JSON(http.StatusOK, payload.SuccessResponse(prodUpdated, ""))
 }
 

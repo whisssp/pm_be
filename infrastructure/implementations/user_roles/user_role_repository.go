@@ -5,7 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"pm/domain/entity"
-	"pm/domain/repository"
+	"pm/domain/repository/user_roles"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/persistences/base"
 )
@@ -50,7 +50,7 @@ func (u UserRoleRepository) GetUserRoleByName(s string) (*entity.UserRole, error
 	return &userRole, nil
 }
 
-func NewUserRoleRepository(db *gorm.DB, p *base.Persistence, c *gin.Context) repository.UserRoleRepository {
+func NewUserRoleRepository(db *gorm.DB, p *base.Persistence, c *gin.Context) user_roles.UserRoleRepository {
 	return UserRoleRepository{
 		db: db,
 		p:  p,

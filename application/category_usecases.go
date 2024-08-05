@@ -1,9 +1,7 @@
 package application
 
 import (
-	"errors"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"pm/domain/entity"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/implementations/categories"
@@ -34,25 +32,19 @@ func (categoryUsecase categoryUsecase) UpdateCategoryByID(c *gin.Context, id int
 	categoryUsecase.p.Logger.Info("UPDATE_CATEGORY", map[string]interface{}{"data": updatePayload})
 
 	categoryRepo := categories.NewCategoryRepository(c, categoryUsecase.p, categoryUsecase.p.GormDB)
-	cate, err := categoryRepo.GetCategoryByID(id)
+	cate, err := categoryRepo.GetCategoryByID(span, id)
 	if err != nil {
-		categoryUsecase.p.Logger.Error("UPDATE_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, payload.ErrEntityNotFound("categories", err)
-		}
-		return nil, payload.ErrInvalidRequest(err)
+		categoryUsecase.p.Logger.Error("UPDATE_CATEGORY: ERROR", map[string]interface{}{"error": err.Error()})
+		return nil, err
 	}
 	mapper.UpdateCategory(cate, &updatePayload)
-	cate, err = categoryRepo.Update(cate)
+	cate, err = categoryRepo.Update(span, cate)
 	if err != nil {
-		categoryUsecase.p.Logger.Error("UPDATE_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, payload.ErrEntityNotFound("categories", err)
-		}
-		return nil, payload.ErrInvalidRequest(err)
+		categoryUsecase.p.Logger.Error("UPDATE_CATEGORY: ERROR", map[string]interface{}{"error": err.Error()})
+		return nil, err
 	}
 	cateResponse := mapper.CategoryToCategoryResponse(cate)
-	categoryUsecase.p.Logger.Info("UPDATE_CATEGORY_SUCCESSFULLY", map[string]interface{}{"data": cateResponse})
+	categoryUsecase.p.Logger.Info("UPDATE_CATEGORY_SUCCESSFULLY", map[string]interface{}{"category_response": cateResponse})
 	return &cateResponse, nil
 }
 
@@ -62,13 +54,10 @@ func (categoryUsecase categoryUsecase) GetCategoryByID(c *gin.Context, id int64)
 	categoryUsecase.p.Logger.Info("GET_CATEGORY", map[string]interface{}{"data": id})
 
 	categoryRepo := categories.NewCategoryRepository(c, categoryUsecase.p, categoryUsecase.p.GormDB)
-	cate, err := categoryRepo.GetCategoryByID(id)
+	cate, err := categoryRepo.GetCategoryByID(span, id)
 	if err != nil {
 		categoryUsecase.p.Logger.Error("GET_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, payload.ErrEntityNotFound("categories", err)
-		}
-		return nil, payload.ErrInvalidRequest(err)
+		return nil, err
 	}
 	cateResponse := mapper.CategoryToCategoryResponse(cate)
 
@@ -82,17 +71,14 @@ func (categoryUsecase categoryUsecase) DeleteCategoryByID(c *gin.Context, id int
 	categoryUsecase.p.Logger.Info("DELETE_CATEGORY", map[string]interface{}{"data": id})
 
 	categoryRepo := categories.NewCategoryRepository(c, categoryUsecase.p, categoryUsecase.p.GormDB)
-	cate, err := categoryRepo.GetCategoryByID(id)
+	cate, err := categoryRepo.GetCategoryByID(span, id)
 	if err != nil {
 		categoryUsecase.p.Logger.Error("DELETE_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return payload.ErrEntityNotFound("categories", err)
-		}
-		return payload.ErrInvalidRequest(err)
+		return err
 	}
-	if err := categoryRepo.DeleteCategory(cate); err != nil {
+	if err := categoryRepo.DeleteCategory(span, cate); err != nil {
 		categoryUsecase.p.Logger.Error("DELETE_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
-		return payload.ErrDB(err)
+		return err
 	}
 
 	categoryUsecase.p.Logger.Info("CREATE_CATEGORY_SUCCESSFULLY", map[string]interface{}{"data": cate.ID})
@@ -111,7 +97,7 @@ func (categoryUsecase categoryUsecase) CreateCategory(c *gin.Context, reqPayload
 
 	categoryEntity := mapper.CreateCatePayloadToCategory(reqPayload)
 	cateRepo := categories.NewCategoryRepository(c, categoryUsecase.p, categoryUsecase.p.GormDB)
-	err := cateRepo.Create(categoryEntity)
+	err := cateRepo.Create(span, categoryEntity)
 	if err != nil {
 		categoryUsecase.p.Logger.Error("CREATE_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
 		return err
@@ -135,7 +121,7 @@ func (categoryUsecase categoryUsecase) GetAllCategories(c *gin.Context, filter *
 	})
 
 	cateRepo := categories.NewCategoryRepository(c, categoryUsecase.p, categoryUsecase.p.GormDB)
-	cates, err := cateRepo.GetAllCategories(filter, pagination)
+	cates, err := cateRepo.GetAllCategories(span, filter, pagination)
 	if err != nil {
 		categoryUsecase.p.Logger.Info("GET_ALL_CATEGORIES_FAILED", map[string]interface{}{"message": err.Error()})
 		return nil, err

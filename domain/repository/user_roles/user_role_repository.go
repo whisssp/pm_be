@@ -1,4 +1,4 @@
-package repository
+package user_roles
 
 import (
 	"pm/domain/entity"

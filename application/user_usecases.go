@@ -3,7 +3,6 @@ package application
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/implementations/users"
 	"pm/infrastructure/mapper"
@@ -34,19 +33,22 @@ func (u userUsecase) Authenticate(c *gin.Context, request *payload.LoginRequest)
 	u.p.Logger.Info("STARTING: AUTHENTICATE", map[string]interface{}{"data": request})
 
 	if err := utils.ValidateReqPayload(request); err != nil {
-		u.p.Logger.Error("AUTHENTICATE: INVALID REQUEST", map[string]interface{}{"message": err.Error()}, u.p.Logger.SetContextWithSpanFunc())
+		u.p.Logger.Error("AUTHENTICATE: INVALID REQUEST", map[string]interface{}{"message": err.Error()})
 		return nil, payload.ErrInvalidRequest(err)
 	}
 
 	userRepo := users.NewUserRepository(c, u.p, u.p.GormDB)
-	user, err := userRepo.GetUserByEmail(request.Email)
+
+	user, err := userRepo.GetUserByEmail(span, request.Email)
 	if err != nil {
-		u.p.Logger.Error("AUTHENTICATE: EMAIL DOESN'T EXISTS", map[string]interface{}{"error": err.Error()})
+		u.p.Logger.Error("AUTHENTICATE: EMAIL DOESN'T EXISTS", map[string]interface{}{"error": err.Error()}, u.p.Logger.UseGivenSpan(span))
 		return nil, err
 	}
 
 	if !utils.ComparePasswords([]byte(user.Password), []byte(request.Password)) {
-		u.p.Logger.Error("AUTHENTICATE: WRONG PASSWORD", map[string]interface{}{"error": "password is incorrect"}, u.p.Logger.UseGivenSpan(span))
+		//cspan := u.p.Logger.Start(c, "AUTHENTICATE: PASSWORD FAILED")
+		//defer cspan.End()
+		u.p.Logger.Error("AUTHENTICATE: WRONG PASSWORD", map[string]interface{}{"error": "password is incorrect"})
 		return nil, payload.ErrWrongPassword(errors.New("incorrect email or password"))
 	}
 
@@ -85,14 +87,11 @@ func (u userUsecase) CreateUser(c *gin.Context, request *payload.UserRequest) er
 
 	u.p.Logger.Info("CREATE_USER_INFO", map[string]interface{}{"data": user})
 	user.Password = hashed
-	if err := userRepo.Create(user); err != nil {
+	if err := userRepo.Create(span, user); err != nil {
 		u.p.Logger.Error("CREATE_USER_FAILED", map[string]interface{}{"message": err.Error()})
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return payload.ErrExisted(err)
-		}
-
-		return payload.ErrDB(err)
+		return err
 	}
+	u.p.Logger.Info("CREATE_USER_SUCCESSFULLY", map[string]interface{}{"data": user})
 	return nil
 }
 

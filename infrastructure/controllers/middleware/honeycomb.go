@@ -3,7 +3,7 @@ package middleware
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/honeycombio/honeycomb-opentelemetry-go"
+	honey "github.com/honeycombio/honeycomb-opentelemetry-go"
 	"github.com/honeycombio/otel-config-go/otelconfig"
 	"github.com/joho/godotenv"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
@@ -22,13 +22,13 @@ func HoneycombHandler() gin.HandlerFunc {
 		serviceName := "WHISPER"
 		apiKey := config.GetEnv(fmt.Sprintf("honeycomb.%s.api_key", os.Getenv("ENV_NAME")), "local")
 		// Enable multi-span attributes
-		bsp := baggagetrace.NewSpanProcessor(nil)
+		bsp := baggagetrace.NewSpanProcessor(baggagetrace.AllowAllMembers)
 
 		// Use the Honeycomb distro to set up the OpenTelemetry SDK
 		otelShutdown, err := otelconfig.ConfigureOpenTelemetry(
 			otelconfig.WithSpanProcessor(bsp),
 			otelconfig.WithServiceName(serviceName),
-			honeycomb.WithApiKey(apiKey),
+			honey.WithApiKey(apiKey),
 		)
 		if err != nil {
 			log.Println("error setting up OTel SDK - %s", err)

@@ -1,14 +1,12 @@
 package application
 
 import (
-	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"gorm.io/gorm"
 	"math"
 	"pm/domain/entity"
-	"pm/domain/repository"
+	products2 "pm/domain/repository/products"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/implementations/orders"
 	"pm/infrastructure/implementations/products"
@@ -45,6 +43,7 @@ func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrde
 	order := mapper.CreateOrderPayloadToOrder(reqPayload)
 	prods := make([]entity.Product, 0)
 	productRepo := products.NewProductRepository(c, o.p, o.p.GormDB)
+	orderRepo := orders.NewOrderRepository(c, o.p, o.p.GormDB)
 	var err error
 
 	// check product stock on redis
@@ -67,14 +66,13 @@ func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrde
 	}
 
 	if len(prods) == 0 {
-		prods, err = productRepo.IsAvailableStockByOrderItems(order.OrderItems...)
+		prods, err = productRepo.IsAvailableStockByOrderItems(span, order.OrderItems...)
 		if err != nil {
 			o.p.Logger.Error("CREATE_ORDER: ERROR PRODUCT IS NOT AVAILABLE", map[string]interface{}{"error": err.Error()})
 			return err
 		}
 	}
 
-	orderRepo := orders.NewOrderRepository(c, o.p, o.p.GormDB)
 	o.p.Logger.Info("CREATE_ORDER", map[string]interface{}{"order": order})
 	if err := orderRepo.Create(&order); err != nil {
 		o.p.Logger.Error("CREATE_ORDER: ERROR", map[string]interface{}{"error": err.Error()})
@@ -104,7 +102,7 @@ func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrde
 	}()
 
 	// this goroutine is for updating product stock
-	go func(prodRepo repository.ProductRepository, gProds []entity.Product) {
+	go func(prodRepo products2.ProductRepository, gProds []entity.Product) {
 		logger, err := zap.NewProduction()
 		if err != nil {
 			fmt.Println("error trying to initialize logger")
@@ -113,7 +111,7 @@ func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrde
 		sugar := logger.Sugar()
 
 		sugar.Infow("GOROUTINE_UPDATE_PRODUCT_QUANTITY", map[string]interface{}{"data": gProds})
-		prods, err := prodRepo.UpdateMultiProduct(prods...)
+		prods, err := prodRepo.UpdateMultiProduct(nil, prods...)
 		if err != nil {
 			sugar.Errorw("GOROUTINE_UPDATE_QUANTITY_PRODUCT_FAILED", map[string]interface{}{"products": prods, "message": err.Error()})
 		}
@@ -127,13 +125,15 @@ func (o orderUsecase) GetAllOrders(filter *entity.OrderFilter, pagination *entit
 }
 
 func (o orderUsecase) GetOrderByID(c *gin.Context, id int64) (*payload.OrderResponse, error) {
+	span := o.p.Logger.Start(c, "GET_ORDER_BY_ID: USECASES", o.p.Logger.SetContextWithSpanFunc())
+	defer span.End()
+	o.p.Logger.Info("STARTING: GET ORDER BY ID", map[string]interface{}{"id": id})
+
 	db := o.p.GormDB
 	orderRepo := orders.NewOrderRepository(c, o.p, db)
 	order, err := orderRepo.GetOrderByID(id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, payload.ErrEntityNotFound(orderEntity, err)
-		}
+		o.p.Logger.Error("GET_ORDER: ERROR", map[string]interface{}{"error": err.Error()})
 		return nil, err
 	}
 	orderResponse := mapper.OrderToOrderResponse(order)
@@ -142,6 +142,7 @@ func (o orderUsecase) GetOrderByID(c *gin.Context, id int64) (*payload.OrderResp
 		totalPrice += v.Price * float64(v.Quantity)
 	}
 	orderResponse.Total = math.Round(totalPrice*100) / 100
+	o.p.Logger.Error("GET_ORDER: SUCCESSFULLY", map[string]interface{}{"order_response": orderResponse})
 	return &orderResponse, nil
 }
 

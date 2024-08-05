@@ -23,7 +23,7 @@ type cacheUsecase struct {
 
 func (c cacheUsecase) LoadProductToRedis() {
 	productRepo := products.NewProductRepository(nil, c.p, c.p.GormDB)
-	prods, err := productRepo.GetAllProducts(nil, nil)
+	prods, err := productRepo.GetAllProducts(nil, nil, nil)
 	if err != nil {
 		fmt.Println("\nLoadProduct/error getting products from db", err)
 	}
