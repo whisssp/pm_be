@@ -24,8 +24,8 @@ func (router *OrderItemRoutes) RegisterRoutes(routerGroup *gin.RouterGroup) {
 	{
 		orderItems.GET("/:id", router.handler.HandleGetOrderItemByID)
 		orderItems.DELETE("/:id", router.handler.HandleDeleteOrderItemByID)
-		orderItems.PUT("/:id", router.handler.HandleUpdateOrderItemByID)
-		orderItems.GET("/:id", router.handler.HandleGetOrderItemByID)
+		orderItems.PUT("", router.handler.HandleUpdateOrderItemByID)
+		orderItems.POST("", router.handler.HandleCreateNewOrderItem)
 		orderItems.GET("", router.handler.HandleGetAllOrderItems)
 	}
 }

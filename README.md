@@ -1,9 +1,20 @@
 # Product Management
 
-Product Management is a small project with basic CRUD product, category, register user, login, create order, authentication, authorization.
+Product Management is a small project with basic CRUD product, category, order_items, register user, login, create order, authentication, authorization.
+
+## Technologies used:
+1. Database: CockroachDB
+2. Cache: Redis Cache
+3. Logger: Honeycomb, Zap
+4. Web framework: Gin
+5. Security: JWT Token
+
+## API Document
+Run application and click this link
+[Documentation](http://localhost:8080/api/v1/swagger/index.html#/)
 
 # Project Architecture
-```json
+```
 📦 
 ├─ application.go
 ├─ application
@@ -131,21 +142,3 @@ go get .
 ```powershell
 go run application.main
 ```
-
-## API Document
-Run application and click this link
-[Documentation](http://localhost:8080/api/v1/swagger/index.html#/)
-
-## Technologies used:
-1. Database: CockroachDB
-2. Cache: Redis Cache
-3. Logger: Honeycomb, Zap
-4. Web framework: Gin
-5. Security: JWT Token
-
-
-
-
-## License
-
-[MIT](https://choosealicense.com/licenses/mit/)

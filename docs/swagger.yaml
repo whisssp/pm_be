@@ -1,4 +1,6 @@
 definitions:
+  entity.OrderItem:
+    type: object
   payload.AppError:
     properties:
       data: {}
@@ -74,6 +76,10 @@ definitions:
         type: integer
       quantity:
         type: integer
+    required:
+    - price
+    - productId
+    - quantity
     type: object
   payload.UpdateCategoryRequest:
     properties:
@@ -352,6 +358,163 @@ paths:
           schema:
             $ref: '#/definitions/payload.AppError'
       summary: Upload a file
+  /order-items:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all order items
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Get all order items
+      tags:
+      - OrderItem
+    post:
+      consumes:
+      - application/json
+      description: Create a new order item
+      parameters:
+      - description: Order items to create
+        in: body
+        name: orderItems
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/entity.OrderItem'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Create new order item
+      tags:
+      - OrderItem
+  /order-items/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an order item by its ID
+      parameters:
+      - description: ID of the order item to delete
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Delete order item by ID
+      tags:
+      - OrderItem
+    get:
+      consumes:
+      - application/json
+      description: Get an order item by its ID
+      parameters:
+      - description: ID of the order item
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Get order item by ID
+      tags:
+      - OrderItem
+    put:
+      consumes:
+      - application/json
+      description: Update an order item by its ID
+      parameters:
+      - description: ID of the order item
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Order item data to update
+        in: body
+        name: orderItem
+        required: true
+        schema:
+          $ref: '#/definitions/entity.OrderItem'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Update order item by ID
+      tags:
+      - OrderItem
   /orders:
     post:
       consumes:
