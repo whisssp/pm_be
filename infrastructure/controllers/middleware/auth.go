@@ -65,7 +65,23 @@ func AuthMiddleware(p *base.Persistence, roles ...int64) gin.HandlerFunc {
 
 		if len(roles) > 0 {
 			claims := utils.JwtGetMapClaims(jwtToken)
-			roleFromClaims, _ := strconv.ParseInt(claims[roleKey].(string), 10, 64)
+
+			var roleInt int64
+			switch v := claims[roleKey].(type) {
+			case int64:
+				roleInt = v
+			case int:
+				roleInt = int64(v)
+			case int32:
+				roleInt = int64(v)
+			case float64:
+				roleInt = int64(v)
+			case string:
+				roleInt, _ = strconv.ParseInt(v, 10, 64)
+			default:
+			}
+
+			roleFromClaims := roleInt
 
 			if user.RoleID == roleFromClaims && !slices.Contains(roles, roleFromClaims) {
 				errP := payload.ErrPermissionDenied(errors.New("You don't have permission to access this resource"))

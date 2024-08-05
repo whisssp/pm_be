@@ -73,14 +73,12 @@ func (prodRepo *ProductRepository) Update(parentSpan trace.Span, product *entity
 }
 
 func (prodRepo *ProductRepository) UpdateMultiProduct(parentSpan trace.Span, products ...entity.Product) ([]entity.Product, error) {
-	span := prodRepo.p.Logger.Start(prodRepo.c, "UPDATE_PRODUCT_STOCK_DATABASE", prodRepo.p.Logger.UseGivenSpan(parentSpan))
-	defer span.End()
 
 	tx := prodRepo.db.Begin()
-	prodRepo.p.Logger.Info("UPDATE_PRODUCT_STOCK", map[string]interface{}{"products": products}, prodRepo.p.Logger.UseGivenSpan(span))
+	prodRepo.p.Logger.Info("UPDATE_PRODUCT_STOCK", map[string]interface{}{"products": products})
 	for index, p := range products {
 		if err := tx.Model(&products[index]).Update("stock", p.Stock).Error; err != nil {
-			prodRepo.p.Logger.Error("UPDATE_PRODUCT_STOCK_FAILED", map[string]interface{}{"product": p, "message": err.Error()}, prodRepo.p.Logger.UseGivenSpan(span))
+			prodRepo.p.Logger.Error("UPDATE_PRODUCT_STOCK_FAILED", map[string]interface{}{"product": p, "message": err.Error()})
 			tx.Rollback()
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, payload.ErrEntityNotFound(entityName, err)
@@ -90,10 +88,10 @@ func (prodRepo *ProductRepository) UpdateMultiProduct(parentSpan trace.Span, pro
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		prodRepo.p.Logger.Error("UPDATE_PRODUCT_STOCK_FAILED", map[string]interface{}{"products": products, "message": err.Error()}, prodRepo.p.Logger.UseGivenSpan(span))
+		prodRepo.p.Logger.Error("UPDATE_PRODUCT_STOCK_FAILED", map[string]interface{}{"products": products, "message": err.Error()})
 		return nil, payload.ErrDB(err)
 	}
-	prodRepo.p.Logger.Error("UPDATE_PRODUCT_STOCK_SUCCESSFULLY", map[string]interface{}{"products": products})
+	prodRepo.p.Logger.Info("UPDATE_PRODUCT_STOCK_SUCCESSFULLY", map[string]interface{}{"products": products})
 	return products, nil
 }
 
