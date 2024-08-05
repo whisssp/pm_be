@@ -115,7 +115,12 @@ func (prodRepo *ProductRepository) GetProductByID(parentSpan trace.Span, id int6
 }
 
 func (prodRepo *ProductRepository) GetAllProducts(parentSpan trace.Span, filter *entity.ProductFilter, pagination *entity.Pagination) ([]entity.Product, error) {
-	span := prodRepo.p.Logger.Start(prodRepo.c, "GET_ALL_PRODUCTS_DATABASE", prodRepo.p.Logger.UseGivenSpan(parentSpan))
+	var span trace.Span
+	if parentSpan != nil {
+		span = prodRepo.p.Logger.Start(prodRepo.c, "GET_ALL_PRODUCTS_DATABASE", prodRepo.p.Logger.UseGivenSpan(parentSpan))
+	} else {
+		span = prodRepo.p.Logger.Start(prodRepo.c, "GET_ALL_PRODUCTS_DATABASE")
+	}
 	defer span.End()
 	prodRepo.p.Logger.Info("GET_ALL_PRODUCTS", map[string]interface{}{"params": struct {
 		Filter     interface{} `json:"filter"`

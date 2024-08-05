@@ -12,8 +12,8 @@ type Order struct {
 
 type OrderItem struct {
 	gorm.Model
-	OrderID   uint
-	ProductID uint
-	Quantity  int
+	OrderID   uint    `json:"orderId" validate:"required"`
+	ProductID uint    `json:"productId" validate:"required"`
+	Quantity  int     `json:"quantity" validate:"required"`
 	Price     float64 `gorm:"type:double precision"`
 }

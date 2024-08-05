@@ -3,6 +3,7 @@ package application
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"math"
 	"pm/domain/entity"
 	"pm/infrastructure/controllers/payload"
@@ -53,19 +54,25 @@ func (p productUsecase) CreateProduct(c *gin.Context, reqPayload *payload.Create
 	}
 
 	go func(prod *entity.Product) {
+		logger, err := zap.NewProduction()
+		if err != nil {
+			fmt.Println("error trying to initialize logger")
+		}
+		defer logger.Sync()
+		sugar := logger.Sugar()
 
+		sugar.Infow("Goroutine - set product created recently to redis")
 		err = utils.RedisSetHashGenericKey(redisHashKey, strconv.FormatInt(int64(prod.ID), 10), prod, p.p.Redis.KeyExpirationTime)
 		if err != nil {
+			sugar.Infow("ERROR - Goroutine - set product created recently to redis")
 			if !strings.Contains(err.Error(), "not found") {
 				fmt.Println("error adding product to redis", err)
 				prods, err := productRepo.GetAllProducts(span, nil, nil)
 				if err != nil {
 					fmt.Println("\nerror getting product from db", err)
 				}
-				err = utils.RedisSetHashGenericKeySlice(redisProductKey, prods, entity.GetID, p.p.Redis.KeyExpirationTime)
+				err = utils.RedisSetHashGenericKeySlice("products", prods, entity.GetID, p.p.Redis.KeyExpirationTime)
 			}
-
-			fmt.Println("got error on redis", err)
 		}
 	}(prod)
 

@@ -51,7 +51,7 @@ type CreateOrderRequest struct {
 }
 
 type OrderItemRequest struct {
-	ProductID uint    `json:"productId"`
-	Quantity  int     `json:"quantity"`
-	Price     float64 `json:"price"`
+	ProductID uint    `json:"productId" validate:"required"`
+	Quantity  int     `json:"quantity" validate:"required"`
+	Price     float64 `json:"price" validate:"required"`
 }

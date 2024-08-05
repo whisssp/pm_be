@@ -344,6 +344,102 @@ const docTemplate = `{
                 }
             }
         },
+        "/orders": {
+            "post": {
+                "description": "Create order with order items included",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Order"
+                ],
+                "summary": "Create a new order",
+                "parameters": [
+                    {
+                        "description": "create a new order",
+                        "name": "CreateOrderRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/payload.CreateOrderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/orders/:id": {
+            "get": {
+                "description": "get order by id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Order"
+                ],
+                "summary": "Get order by id",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "the id of order to get the order",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    }
+                }
+            }
+        },
         "/products": {
             "get": {
                 "description": "Get all products which is not deleted",
@@ -767,14 +863,23 @@ const docTemplate = `{
                 }
             }
         },
-        "/users/authenticate": {
+        "/users": {
             "post": {
                 "description": "Create a user to get info to authenticate",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
                 "summary": "Create a user",
                 "parameters": [
                     {
-                        "description": "payload.UserRequest",
-                        "name": "payload.UserRequest",
+                        "description": "create new user",
+                        "name": "UserRequest",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -803,23 +908,59 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/users/authenticate": {
+            "post": {
+                "description": "Authenticate to receive a token string to use it for verifying permission",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Authenticate user to get access resource",
+                "parameters": [
+                    {
+                        "description": "send the login request data to authenticate",
+                        "name": "LoginRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/payload.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/payload.AppError"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
-        "entity.UserRole": {
-            "type": "integer",
-            "enum": [
-                0,
-                1
-            ],
-            "x-enum-varnames": [
-                "RoleAdmin",
-                "RoleUser"
-            ]
-        },
         "payload.AppError": {
             "type": "object",
             "properties": {
+                "data": {},
                 "message": {
                     "type": "string"
                 },
@@ -848,6 +989,23 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "payload.CreateOrderRequest": {
+            "type": "object",
+            "properties": {
+                "orderItems": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/payload.OrderItemRequest"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "integer"
                 }
             }
         },
@@ -895,6 +1053,20 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 11,
                     "minLength": 6
+                }
+            }
+        },
+        "payload.OrderItemRequest": {
+            "type": "object",
+            "properties": {
+                "price": {
+                    "type": "number"
+                },
+                "productId": {
+                    "type": "integer"
+                },
+                "quantity": {
+                    "type": "integer"
                 }
             }
         },
@@ -969,14 +1141,10 @@ const docTemplate = `{
                     "maxLength": 11
                 },
                 "role": {
+                    "type": "integer",
                     "enum": [
                         1,
                         2
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/entity.UserRole"
-                        }
                     ]
                 }
             }

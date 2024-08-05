@@ -18,14 +18,16 @@ func NewUserHandler(p *base.Persistence) *UserHandler {
 	return &UserHandler{p, userUsecase}
 }
 
-// Authenticate 			godoc
+// HandleAuthenticate 	Authenticate 			godoc
 // @Summary 			Authenticate user to get access resource
 // @Description			Authenticate to receive a token string to use it for verifying permission
-// Tag					User
-// @Param				payload.LoginRequest body payload.LoginRequest{} true "payload.LoginRequest"
-// @Success				200		{object} payload.AppResponse{}
-// @Failure      		400  	{object} payload.AppError{}
-// @Failure 			500 	{object} payload.AppError{}
+// @Tags				User
+// @Accept				json
+// @Produce				json
+// @Param				LoginRequest body payload.LoginRequest true "send the login request data to authenticate"
+// @Success				200		{object} payload.AppResponse
+// @Failure      		400  	{object} payload.AppError
+// @Failure 			500 	{object} payload.AppError
 // @Router				/users/authenticate [post]
 func (h *UserHandler) HandleAuthenticate(c *gin.Context) {
 	span := h.p.Logger.Start(c, "handlers/HandleAuthenticate", h.p.Logger.SetContextWithSpanFunc())
@@ -50,15 +52,17 @@ func (h *UserHandler) HandleAuthenticate(c *gin.Context) {
 	c.JSON(http.StatusOK, payload.SuccessResponse(response, ""))
 }
 
-// Create User 			godoc
+// HandleCreateUser Create User 			godoc
 // @Summary 			Create a user
 // @Description			Create a user to get info to authenticate
-// Tag					User
-// @Param				payload.UserRequest body payload.UserRequest{} true "payload.UserRequest"
-// @Success				200		{object} payload.AppResponse{}
-// @Failure      		400  	{object} payload.AppError{}
-// @Failure 			500 	{object} payload.AppError{}
-// @Router				/users/authenticate [post]
+// @Tags				User
+// @Accept				json
+// @Produce				json
+// @Param				UserRequest body payload.UserRequest true "create new user"
+// @Success				200		{object} payload.AppResponse
+// @Failure      		400  	{object} payload.AppError
+// @Failure 			500 	{object} payload.AppError
+// @Router				/users [post]
 func (h *UserHandler) HandleCreateUser(c *gin.Context) {
 	span := h.p.Logger.Start(c, "handlers/HandleCreateUser", h.p.Logger.SetContextWithSpanFunc())
 	defer span.End()

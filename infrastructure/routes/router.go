@@ -63,12 +63,14 @@ func (s *Server) SetUpRoutes(router *gin.Engine) {
 	fileHandler := handlers.NewFileHandler(s.Persistence)
 	userHandler := handlers.NewUserHandler(s.Persistence)
 	orderHandler := handlers.NewOrderHandler(s.Persistence)
+	orderItemHandler := handlers.NewOrderItemHandler(s.Persistence)
 
 	productRoute := NewProductRoutes(s.Persistence, productHandler)
 	categoryRoute := NewCategoryRoutes(s.Persistence, categoryHandler)
 	fileRoute := NewFileRoutes(s.Persistence, fileHandler)
 	userRoute := NewUserRoutes(s.Persistence, userHandler)
 	orderRoute := NewOrderRoutes(s.Persistence, orderHandler)
+	orderItemRoute := NewOrderItemRoutes(s.Persistence, orderItemHandler)
 
 	router.Use(middleware.HoneycombHandler(), middleware.ErrorHandlingMiddleware())
 
@@ -81,6 +83,7 @@ func (s *Server) SetUpRoutes(router *gin.Engine) {
 	fileRoute.RegisterRoutes(v1)
 	userRoute.RegisterRoutes(v1)
 	orderRoute.RegisterRoutes(v1)
+	orderItemRoute.RegisterRoutes(v1)
 }
 
 func (s *Server) InitHelpers() {

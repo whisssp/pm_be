@@ -80,3 +80,8 @@ type ListOrderResponses struct {
 	Orders []OrderResponse `json:"orders"`
 	PaginationResponse
 }
+
+type ListOrderItemResponses struct {
+	Orders []OrderItemResponse `json:"orderItems"`
+	PaginationResponse
+}

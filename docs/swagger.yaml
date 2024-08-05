@@ -1,14 +1,7 @@
 definitions:
-  entity.UserRole:
-    enum:
-    - 0
-    - 1
-    type: integer
-    x-enum-varnames:
-    - RoleAdmin
-    - RoleUser
   payload.AppError:
     properties:
+      data: {}
       message:
         type: string
       status_code:
@@ -28,6 +21,17 @@ definitions:
         type: string
     required:
     - name
+    type: object
+  payload.CreateOrderRequest:
+    properties:
+      orderItems:
+        items:
+          $ref: '#/definitions/payload.OrderItemRequest'
+        type: array
+      status:
+        type: string
+      userId:
+        type: integer
     type: object
   payload.CreateProductRequest:
     properties:
@@ -61,6 +65,15 @@ definitions:
     required:
     - email
     - password
+    type: object
+  payload.OrderItemRequest:
+    properties:
+      price:
+        type: number
+      productId:
+        type: integer
+      quantity:
+        type: integer
     type: object
   payload.UpdateCategoryRequest:
     properties:
@@ -107,11 +120,10 @@ definitions:
         maxLength: 11
         type: string
       role:
-        allOf:
-        - $ref: '#/definitions/entity.UserRole'
         enum:
         - 1
         - 2
+        type: integer
     required:
     - email
     - name
@@ -340,6 +352,69 @@ paths:
           schema:
             $ref: '#/definitions/payload.AppError'
       summary: Upload a file
+  /orders:
+    post:
+      consumes:
+      - application/json
+      description: Create order with order items included
+      parameters:
+      - description: create a new order
+        in: body
+        name: CreateOrderRequest
+        required: true
+        schema:
+          $ref: '#/definitions/payload.CreateOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Create a new order
+      tags:
+      - Order
+  /orders/:id:
+    get:
+      consumes:
+      - application/json
+      description: get order by id
+      parameters:
+      - description: the id of order to get the order
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Get order by id
+      tags:
+      - Order
   /products:
     get:
       consumes:
@@ -612,16 +687,20 @@ paths:
       summary: Get all products
       tags:
       - Product
-  /users/authenticate:
+  /users:
     post:
+      consumes:
+      - application/json
       description: Create a user to get info to authenticate
       parameters:
-      - description: payload.UserRequest
+      - description: create new user
         in: body
-        name: payload.UserRequest
+        name: UserRequest
         required: true
         schema:
           $ref: '#/definitions/payload.UserRequest'
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -636,4 +715,37 @@ paths:
           schema:
             $ref: '#/definitions/payload.AppError'
       summary: Create a user
+      tags:
+      - User
+  /users/authenticate:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate to receive a token string to use it for verifying
+        permission
+      parameters:
+      - description: send the login request data to authenticate
+        in: body
+        name: LoginRequest
+        required: true
+        schema:
+          $ref: '#/definitions/payload.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payload.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/payload.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/payload.AppError'
+      summary: Authenticate user to get access resource
+      tags:
+      - User
 swagger: "2.0"

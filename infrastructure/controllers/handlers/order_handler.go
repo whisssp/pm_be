@@ -26,6 +26,18 @@ func NewOrderHandler(p *base.Persistence) *OrderHandler {
 	return &OrderHandler{p, usecase}
 }
 
+// HandleCreateOrder CreateOrder godoc
+//
+//	@Summary		Create a new order
+//	@Description	Create order with order items included
+//	@Tags			Order
+//	@Accept			json
+//	@Produce		json
+//	@Param			CreateOrderRequest	body		payload.CreateOrderRequest	true	"create a new order"
+//	@Success		200				{object}	payload.AppResponse
+//	@Failure		400				{object}	payload.AppError
+//	@Failure		500				{object}	payload.AppError
+//	@Router			/orders 				[post]
 func (h *OrderHandler) HandleCreateOrder(c *gin.Context) {
 	span := h.p.Logger.Start(c, "handlers/HandleCreateOrder", h.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
@@ -86,6 +98,19 @@ func (h *OrderHandler) HandleGetAllOrders(c *gin.Context) {
 
 }
 
+// HandleGetOrderByID GetOrderByID godoc
+//
+//	@Summary		Get order by id
+//	@Description	get order by id
+//	@Tags			Order
+//	@Accept			json
+//	@Produce		json
+//	@Param			id				path		int	true	"the id of order to get the order"
+//	@Success		200				{object}	payload.AppResponse
+//	@Failure		400				{object}	payload.AppError
+//	@Failure		404				{object}	payload.AppError
+//	@Failure		500				{object}	payload.AppError
+//	@Router			/orders/:id 				[get]
 func (h *OrderHandler) HandleGetOrderByID(c *gin.Context) {
 	orderId, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	if orderId == 0 {
