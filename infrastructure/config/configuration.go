@@ -63,12 +63,18 @@ type JwtConfig struct {
 	TokenExpiration time.Duration
 }
 
+type MailConfig struct {
+	Username string
+	Password string
+}
+
 type AppConfig struct {
 	DatabaseConfig        DatabaseConfig
 	RedisConfig           RedisConfig
 	Server                Server
 	SupabaseStorageConfig SupabaseStorage
 	JwtConfig             JwtConfig
+	MailConfig            MailConfig
 }
 
 var Configs, _ = LoadConfig()

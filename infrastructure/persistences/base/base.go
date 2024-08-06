@@ -10,6 +10,7 @@ import (
 	"pm/infrastructure/implementations/loggers"
 	db2 "pm/infrastructure/persistences/base/db"
 	"pm/infrastructure/persistences/base/logger"
+	"pm/infrastructure/persistences/base/mail"
 	rd2 "pm/infrastructure/persistences/base/redis"
 	"pm/infrastructure/persistences/base/supabase"
 	"time"
@@ -21,6 +22,7 @@ type Persistence struct {
 	Redis           RedisPersistence
 	SupabaseStorage *storage_go.Client
 	Logger          *loggers.LoggerRepo
+	Mailer          *mail.Mailer
 }
 
 type RedisPersistence struct {
@@ -36,6 +38,7 @@ func InitPersistence(appConfig *config.AppConfig) *Persistence {
 			KeyExpirationTime: appConfig.RedisConfig.ExpirationTime,
 		},
 		SupabaseStorage: nil,
+		Mailer:          nil,
 		Ctx:             context.Background(),
 	}
 	gormDBConfig := appConfig.DatabaseConfig
@@ -62,5 +65,8 @@ func InitPersistence(appConfig *config.AppConfig) *Persistence {
 		fmt.Println("error initializing logger", err)
 	}
 	persistence.Logger = logger
+
+	mailer := mail.NewMailer()
+	persistence.Mailer = mailer
 	return persistence
 }

@@ -58,6 +58,7 @@ func (s *Server) Run() {
 }
 
 func (s *Server) SetUpRoutes(router *gin.Engine) {
+	mailHandler := handlers.NewMailHandler(s.Persistence)
 	productHandler := handlers.NewProductHandler(s.Persistence)
 	categoryHandler := handlers.NewCategoryHandler(s.Persistence)
 	fileHandler := handlers.NewFileHandler(s.Persistence)
@@ -65,6 +66,7 @@ func (s *Server) SetUpRoutes(router *gin.Engine) {
 	orderHandler := handlers.NewOrderHandler(s.Persistence)
 	orderItemHandler := handlers.NewOrderItemHandler(s.Persistence)
 
+	mailRoute := NewMailRoutes(s.Persistence, mailHandler)
 	productRoute := NewProductRoutes(s.Persistence, productHandler)
 	categoryRoute := NewCategoryRoutes(s.Persistence, categoryHandler)
 	fileRoute := NewFileRoutes(s.Persistence, fileHandler)
@@ -78,6 +80,7 @@ func (s *Server) SetUpRoutes(router *gin.Engine) {
 
 	v1.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	mailRoute.RegisterRoutes(v1)
 	productRoute.RegisterRoutes(v1)
 	categoryRoute.RegisterRoutes(v1)
 	fileRoute.RegisterRoutes(v1)

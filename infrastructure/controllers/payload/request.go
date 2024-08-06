@@ -61,3 +61,12 @@ type OrderItemRequest struct {
 type OrderItemsRequest struct {
 	OrderItems []entity.OrderItem `json:"orderItems" validate:"required"`
 }
+
+type MailRequest struct {
+	Subject      string      `json:"subject"`
+	Receivers    []string    `json:"receivers"`
+	Body         string      `json:"body"`
+	IsTemplate   bool        `json:"isTemplate"`
+	TemplateCode string      `json:"templateCode"`
+	Attachment   interface{} `json:"attachment"`
+}
