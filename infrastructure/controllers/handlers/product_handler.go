@@ -217,6 +217,15 @@ func (handler *ProductHandler) HandleUpdateProductByID(c *gin.Context) {
 	c.JSON(http.StatusOK, payload.SuccessResponse(prodUpdated, ""))
 }
 
+func (handler *ProductHandler) HandleGetReport(c *gin.Context) {
+	err := handler.usecase.Report()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, payload.SuccessResponse(nil, "dang gui"))
+}
+
 func removeSlashFromParam(param string) string {
 	if strings.Contains(param, "/") {
 		param = strings.Replace(param, "/", "", -1)

@@ -26,5 +26,6 @@ func (router *ProductRoutes) RegisterRoutes(routerGroup *gin.RouterGroup) {
 		products.GET("/:id", middleware.AuthMiddleware(router.p), router.handler.HandleGetProductByID)
 		products.DELETE("/:id", middleware.AuthMiddleware(router.p, entity.RoleAdmin), router.handler.HandleDeleteProductByID)
 		products.PUT("/:id", middleware.AuthMiddleware(router.p), router.handler.HandleUpdateProductByID)
+		products.GET("/report", middleware.AuthMiddleware(router.p), router.handler.HandleGetReport)
 	}
 }

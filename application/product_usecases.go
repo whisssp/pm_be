@@ -7,6 +7,7 @@ import (
 	"math"
 	"pm/domain/entity"
 	"pm/infrastructure/controllers/payload"
+	"pm/infrastructure/implementations/files"
 	"pm/infrastructure/implementations/products"
 	"pm/infrastructure/mapper"
 	"pm/infrastructure/persistences/base"
@@ -26,6 +27,7 @@ type ProductUsecase interface {
 	GetProductByID(*gin.Context, int64) (*payload.ProductResponse, error)
 	DeleteProductByID(*gin.Context, int64) error
 	UpdateProductByID(*gin.Context, int64, *payload.UpdateProductRequest) (*payload.ProductResponse, error)
+	Report() error
 }
 type productUsecase struct {
 	p *base.Persistence
@@ -216,6 +218,11 @@ func (p productUsecase) UpdateProductByID(c *gin.Context, id int64, updatePayloa
 	prodResponse := mapper.ProductToProductResponse(prod)
 	p.p.Logger.Error("UPDATE_PRODUCT: SUCCESSFULLY", map[string]interface{}{"product_response": prodResponse})
 	return &prodResponse, nil
+}
+
+func (p productUsecase) Report() error {
+	fileRepository := files.NewFileRepository(p.p)
+	return fileRepository.ExportExcelProductReport()
 }
 
 func prodsMapToArray(prodsMap map[string]entity.Product) []entity.Product {
