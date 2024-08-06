@@ -1,13 +1,18 @@
 package application
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"pm/domain/entity"
 	"pm/infrastructure/controllers/payload"
 	orderItems "pm/infrastructure/implementations/order_items"
+	"pm/infrastructure/implementations/products"
+	"pm/infrastructure/jobs"
 	"pm/infrastructure/mapper"
 	"pm/infrastructure/persistences/base"
 	"pm/utils"
+	"strconv"
 )
 
 type OrderItemUsecase interface {
@@ -22,25 +27,46 @@ type orderItemUsecase struct {
 	p *base.Persistence
 }
 
-// CreateNewOrderItem HandleCreateNewOrderItem godoc
-//
-//	@Summary		Create new order item
-//	@Description	Create a new order item
-//	@Tags			OrderItem
-//	@Accept			json
-//	@Produce		json
-//	@Param			orderItems	body		[]entity.OrderItem	true	"Order items to create"
-//	@Success		200			{object}	payload.AppResponse
-//	@Failure		400			{object}	payload.AppError
-//	@Failure		500			{object}	payload.AppError
-//	@Router			/order-items	[post]
 func (o orderItemUsecase) CreateNewOrderItem(c *gin.Context, items []entity.OrderItem) error {
 	span := o.p.Logger.Start(c, "CREATE_ORDER_ITEM_USECASE", o.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
 
-	if err := utils.ValidateReqPayload(items); err != nil {
-		o.p.Logger.Error("CREATE_ORDER_ITEMS: ERROR INVALID DATA", map[string]interface{}{"error": err.Error(), "order_items": items})
-		return payload.ErrInvalidRequest(err)
+	for _, item := range items {
+		if err := utils.ValidateReqPayload(item); err != nil {
+			o.p.Logger.Error("CREATE_ORDER_ITEMS: ERROR INVALID DATA", map[string]interface{}{"error": err.Error(), "order_item": item})
+			return payload.ErrInvalidRequest(err)
+		}
+	}
+
+	prods := make([]entity.Product, 0)
+
+	// check product stock on redis
+	for i, e := range items {
+		var p entity.Product
+		utils.RedisGetHashGenericKey(redisHashKey, strconv.Itoa(int(e.ProductID)), &p)
+		var isAvailable bool = false
+		if p.ID == 0 {
+			continue
+		}
+		isAvailable = (p.Stock - int64(e.Quantity)) >= 0
+		if !isAvailable {
+			err := fmt.Errorf("product: %v is not available, please check again", e.ProductID)
+			o.p.Logger.Error("CREATE_ORDER: ERROR PRODUCT IS NOT AVAILABLE", map[string]interface{}{"error": err.Error()})
+			prods = make([]entity.Product, 0)
+			break
+		}
+		p.Stock = p.Stock - int64(e.Quantity)
+		prods[i] = p
+	}
+
+	if len(prods) == 0 {
+		var err error = nil
+		productRepo := products.NewProductRepository(c, o.p, o.p.GormDB)
+		prods, err = productRepo.IsAvailableStockByOrderItems(span, items...)
+		if err != nil {
+			o.p.Logger.Error("CREATE_ORDER: ERROR PRODUCT IS NOT AVAILABLE", map[string]interface{}{"error": err.Error()})
+			return err
+		}
 	}
 
 	oiRepo := orderItems.NewOrderItemRepository(o.p.GormDB, c, o.p, span)
@@ -49,31 +75,58 @@ func (o orderItemUsecase) CreateNewOrderItem(c *gin.Context, items []entity.Orde
 		return err
 	}
 
+	// this goroutine is for updating product on redis
+	go func() {
+		logger, err := zap.NewProduction()
+		if err != nil {
+			fmt.Println("error trying to initialize logger")
+		}
+		defer logger.Sync()
+		sugar := logger.Sugar()
+
+		sugar.Debugw("GOROUTINE_UPDATE_PRODUCT_STOCK", map[string]interface{}{"products": prods})
+		errMap := make(map[string]interface{})
+		for _, e := range prods {
+			err := utils.RedisSetHashGenericKey(redisHashKey, strconv.Itoa(int(e.ID)), e, o.p.Redis.KeyExpirationTime)
+			if err != nil {
+				errMap[strconv.Itoa(int(e.ID))] = err
+				sugar.Errorw("GOROUTINE_UPDATE_PRODUCT_STOCK", map[string]interface{}{"products": prods})
+				go jobs.LoadProductToRedis(o.p)
+			}
+		}
+	}()
+
+	// this goroutine is for updating product stock
+	go func(gProds []entity.Product) {
+		logger, err := zap.NewProduction()
+		if err != nil {
+			fmt.Println("error trying to initialize logger")
+		}
+		defer logger.Sync()
+		sugar := logger.Sugar()
+
+		sugar.Infow("GOROUTINE_UPDATE_PRODUCT_QUANTITY", map[string]interface{}{"data": gProds})
+		prodRepo := products.NewProductRepository(c, o.p, o.p.GormDB)
+		prods, err := prodRepo.UpdateMultiProduct(nil, prods...)
+		if err != nil {
+			sugar.Errorw("GOROUTINE_UPDATE_QUANTITY_PRODUCT_FAILED", map[string]interface{}{"products": prods, "message": err.Error()})
+		}
+	}(prods)
+
 	o.p.Logger.Info("CREATE_ORDER_ITEMS: SUCCESSFULLY", map[string]interface{}{"order_items": items})
 	return nil
 }
 
-// UpdateOrderItem HandleUpdateOrderItemByID godoc
-//
-//	@Summary		Update order item by ID
-//	@Description	Update an order item by its ID
-//	@Tags			OrderItem
-//	@Accept			json
-//	@Produce		json
-//	@Param			id	path		int					true	"ID of the order item"
-//	@Param			orderItem	body		entity.OrderItem	true	"Order item data to update"
-//	@Success		200			{object}	payload.AppResponse
-//	@Failure		400			{object}	payload.AppError
-//	@Failure		404			{object}	payload.AppError
-//	@Failure		500			{object}	payload.AppError
-//	@Router			/order-items/{id}	[put]
 func (o orderItemUsecase) UpdateOrderItem(c *gin.Context, items []entity.OrderItem) ([]payload.OrderItemResponse, error) {
-	span := o.p.Logger.Start(c, "UPDATEE_ORDER_ITEM_USECASE", o.p.Logger.SetContextWithSpanFunc())
+	span := o.p.Logger.Start(c, "UPDATE_ORDER_ITEM_USECASE", o.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
 
-	if err := utils.ValidateReqPayload(items); err != nil {
-		o.p.Logger.Error("CREATE_ORDER_ITEMS: ERROR INVALID DATA", map[string]interface{}{"error": err.Error(), "order_items": items})
-		return nil, payload.ErrInvalidRequest(err)
+	for _, item := range items {
+		if err := utils.ValidateReqPayload(item); err != nil {
+			o.p.Logger.Error("UPDATE_ORDER_ITEMS: ERROR INVALID DATA", map[string]interface{}{"error": err.Error(), "order_item": item})
+			return nil, payload.ErrInvalidRequest(err)
+		}
+
 	}
 
 	oiRepo := orderItems.NewOrderItemRepository(o.p.GormDB, c, o.p, span)
@@ -83,29 +136,85 @@ func (o orderItemUsecase) UpdateOrderItem(c *gin.Context, items []entity.OrderIt
 		return nil, err
 	}
 
+	prods := make([]entity.Product, 0)
+
+	// check product stock on redis
+	for i, e := range items {
+		var p entity.Product
+		utils.RedisGetHashGenericKey(redisHashKey, strconv.Itoa(int(e.ProductID)), &p)
+		var isAvailable bool = false
+		if p.ID == 0 {
+			continue
+		}
+		isAvailable = (p.Stock - int64(e.Quantity)) >= 0
+		if !isAvailable {
+			err := fmt.Errorf("product: %v is not available, please check again", e.ProductID)
+			o.p.Logger.Error("UPDATE_ORDER_ITEM: ERROR PRODUCT IS NOT AVAILABLE", map[string]interface{}{"error": err.Error()})
+			prods = make([]entity.Product, 0)
+			break
+		}
+		p.Stock = p.Stock - int64(e.Quantity)
+		prods[i] = p
+	}
+
+	if len(prods) == 0 {
+		var err error = nil
+		productRepo := products.NewProductRepository(c, o.p, o.p.GormDB)
+		prods, err = productRepo.IsAvailableStockByOrderItems(span, items...)
+		if err != nil {
+			o.p.Logger.Error("UPDATE_ORDER_ITEM: ERROR PRODUCT IS NOT AVAILABLE", map[string]interface{}{"error": err.Error()})
+			return nil, err
+		}
+	}
+
 	orderItemResponses := make([]payload.OrderItemResponse, 0)
 	for _, item := range orderItems {
 		oir := mapper.OrderItemToOrderItemResponse(&item)
 		orderItemResponses = append(orderItemResponses, oir)
 	}
 
+	// this goroutine is for updating product on redis
+	go func() {
+		logger, err := zap.NewProduction()
+		if err != nil {
+			fmt.Println("error trying to initialize logger")
+		}
+		defer logger.Sync()
+		sugar := logger.Sugar()
+
+		sugar.Debugw("GOROUTINE_UPDATE_PRODUCT_STOCK", map[string]interface{}{"products": prods})
+		errMap := make(map[string]interface{})
+		for _, e := range prods {
+			err := utils.RedisSetHashGenericKey(redisHashKey, strconv.Itoa(int(e.ID)), e, o.p.Redis.KeyExpirationTime)
+			if err != nil {
+				errMap[strconv.Itoa(int(e.ID))] = err
+				sugar.Errorw("GOROUTINE_UPDATE_PRODUCT_STOCK", map[string]interface{}{"products": prods})
+				go jobs.LoadProductToRedis(o.p)
+			}
+		}
+	}()
+
+	// this goroutine is for updating product stock
+	go func(gProds []entity.Product) {
+		logger, err := zap.NewProduction()
+		if err != nil {
+			fmt.Println("error trying to initialize logger")
+		}
+		defer logger.Sync()
+		sugar := logger.Sugar()
+
+		sugar.Infow("GOROUTINE_UPDATE_PRODUCT_QUANTITY", map[string]interface{}{"data": gProds})
+		prodRepo := products.NewProductRepository(c, o.p, o.p.GormDB)
+		prods, err := prodRepo.UpdateMultiProduct(nil, prods...)
+		if err != nil {
+			sugar.Errorw("GOROUTINE_UPDATE_QUANTITY_PRODUCT_FAILED", map[string]interface{}{"products": prods, "message": err.Error()})
+		}
+	}(prods)
+
 	o.p.Logger.Info("UPDATE_ORDER_ITEMS: SUCCESSFULLY", map[string]interface{}{"order_items": items})
 	return orderItemResponses, nil
 }
 
-// GetOrderItemByID HandleGetOrderItemByID godoc
-//
-//	@Summary		Get order item by ID
-//	@Description	Get an order item by its ID
-//	@Tags			OrderItem
-//	@Accept			json
-//	@Produce		json
-//	@Param			id	path		int	true	"ID of the order item"
-//	@Success		200	{object}	payload.AppResponse
-//	@Failure		400	{object}	payload.AppError
-//	@Failure		404	{object}	payload.AppError
-//	@Failure		500	{object}	payload.AppError
-//	@Router			/order-items/{id}	[get]
 func (o orderItemUsecase) GetOrderItemByID(c *gin.Context, id int64) (*payload.OrderItemResponse, error) {
 	span := o.p.Logger.Start(c, "GET_ORDER_ITEM_BY_ID_USECASE", o.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
@@ -123,19 +232,6 @@ func (o orderItemUsecase) GetOrderItemByID(c *gin.Context, id int64) (*payload.O
 	return &oir, nil
 }
 
-// DeleteOrderItemByID HandleDeleteOrderItemByID godoc
-//
-//	@Summary		Delete order item by ID
-//	@Description	Delete an order item by its ID
-//	@Tags			OrderItem
-//	@Accept			json
-//	@Produce		json
-//	@Param			id	path		int	true	"ID of the order item to delete"
-//	@Success		200	{object}	payload.AppResponse
-//	@Failure		400	{object}	payload.AppError
-//	@Failure		404	{object}	payload.AppError
-//	@Failure		500	{object}	payload.AppError
-//	@Router			/order-items/{id}	[delete]
 func (o orderItemUsecase) DeleteOrderItemByID(c *gin.Context, id int64) error {
 	span := o.p.Logger.Start(c, "DELETE_ORDER_ITEM_BY_ID_USECASE", o.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
@@ -151,17 +247,6 @@ func (o orderItemUsecase) DeleteOrderItemByID(c *gin.Context, id int64) error {
 	return nil
 }
 
-// GetAllOrderItems HandleGetAllOrderItems godoc
-//
-//	@Summary		Get all order items
-//	@Description	Get a list of all order items
-//	@Tags			OrderItem
-//	@Accept			json
-//	@Produce		json
-//	@Success		200	{object}	payload.AppResponse
-//	@Failure		400	{object}	payload.AppError
-//	@Failure		500	{object}	payload.AppError
-//	@Router			/order-items	[get]
 func (o orderItemUsecase) GetAllOrderItems(c *gin.Context) (*payload.ListOrderItemResponses, error) {
 	span := o.p.Logger.Start(c, "GET_ALL_ORDER_ITEMS_USECASE", o.p.Logger.SetContextWithSpanFunc())
 	defer span.End()

@@ -1,5 +1,7 @@
 package payload
 
+import "pm/domain/entity"
+
 type CreateProductRequest struct {
 	Name        string  `json:"name" validate:"required"`
 	Description string  `json:"description"`
@@ -54,4 +56,8 @@ type OrderItemRequest struct {
 	ProductID uint    `json:"productId" validate:"required"`
 	Quantity  int     `json:"quantity" validate:"required"`
 	Price     float64 `json:"price" validate:"required"`
+}
+
+type OrderItemsRequest struct {
+	OrderItems []entity.OrderItem `json:"orderItems" validate:"required"`
 }
