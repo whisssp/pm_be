@@ -3,6 +3,7 @@ package application
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
+	"pm/domain/entity"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/implementations/users"
 	"pm/infrastructure/mapper"
@@ -12,11 +13,11 @@ import (
 
 type UserUsecase interface {
 	CreateUser(*gin.Context, *payload.UserRequest) error
-	GetUserByID(id int64) (*payload.UserResponse, error)
+	GetUserByID(id int64) (*entity.User, error)
 	GetAllUsers() ([]payload.ListUserResponses, error)
-	UpdateUserByID(request *payload.UserRequest) (*payload.UserResponse, error)
+	UpdateUserByID(request *payload.UserRequest) (*entity.User, error)
 	DeleteUserByID(id int64) error
-	Authenticate(*gin.Context, *payload.LoginRequest) (*payload.AuthResponse, error)
+	Authenticate(*gin.Context, *payload.LoginRequest) (string, error)
 }
 
 type userUsecase struct {
@@ -27,14 +28,14 @@ func NewUserUsecase(p *base.Persistence) UserUsecase {
 	return userUsecase{p}
 }
 
-func (u userUsecase) Authenticate(c *gin.Context, request *payload.LoginRequest) (*payload.AuthResponse, error) {
+func (u userUsecase) Authenticate(c *gin.Context, request *payload.LoginRequest) (string, error) {
 	span := u.p.Logger.Start(c, "AUTHENTICATE_USECASES", u.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
 	u.p.Logger.Info("STARTING: AUTHENTICATE", map[string]interface{}{"data": request})
 
 	if err := utils.ValidateReqPayload(request); err != nil {
 		u.p.Logger.Error("AUTHENTICATE: INVALID REQUEST", map[string]interface{}{"message": err.Error()})
-		return nil, payload.ErrInvalidRequest(err)
+		return "", payload.ErrInvalidRequest(err)
 	}
 
 	userRepo := users.NewUserRepository(c, u.p, u.p.GormDB)
@@ -42,25 +43,24 @@ func (u userUsecase) Authenticate(c *gin.Context, request *payload.LoginRequest)
 	user, err := userRepo.GetUserByEmail(span, request.Email)
 	if err != nil {
 		u.p.Logger.Error("AUTHENTICATE: EMAIL DOESN'T EXISTS", map[string]interface{}{"error": err.Error()}, u.p.Logger.UseGivenSpan(span))
-		return nil, err
+		return "", err
 	}
 
 	if !utils.ComparePasswords([]byte(user.Password), []byte(request.Password)) {
 		//cspan := u.p.Logger.Start(c, "AUTHENTICATE: PASSWORD FAILED")
 		//defer cspan.End()
 		u.p.Logger.Error("AUTHENTICATE: WRONG PASSWORD", map[string]interface{}{"error": "password is incorrect"})
-		return nil, payload.ErrWrongPassword(errors.New("incorrect email or password"))
+		return "", payload.ErrWrongPassword(errors.New("incorrect email or password"))
 	}
 
 	token, err := utils.JwtGenerateJwtToken(c, u.p, user, span)
 	if err != nil {
 		u.p.Logger.Error("AUTHENTICATE: GENERATE TOKEN FAILED", map[string]interface{}{"error": err.Error()})
-		return nil, err
+		return "", err
 	}
 
-	authResponse := payload.AuthResponse{Token: token}
-	u.p.Logger.Info("AUTHENTICATE: SUCCESSFULLY", map[string]interface{}{"authenticate_response": authResponse})
-	return &authResponse, nil
+	u.p.Logger.Info("AUTHENTICATE: SUCCESSFULLY", map[string]interface{}{"authenticate_response": token})
+	return token, nil
 }
 
 func (u userUsecase) CreateUser(c *gin.Context, request *payload.UserRequest) error {
@@ -95,7 +95,7 @@ func (u userUsecase) CreateUser(c *gin.Context, request *payload.UserRequest) er
 	return nil
 }
 
-func (u userUsecase) GetUserByID(id int64) (*payload.UserResponse, error) {
+func (u userUsecase) GetUserByID(id int64) (*entity.User, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -105,7 +105,7 @@ func (u userUsecase) GetAllUsers() ([]payload.ListUserResponses, error) {
 	panic("implement me")
 }
 
-func (u userUsecase) UpdateUserByID(request *payload.UserRequest) (*payload.UserResponse, error) {
+func (u userUsecase) UpdateUserByID(request *payload.UserRequest) (*entity.User, error) {
 	//TODO implement me
 	panic("implement me")
 }

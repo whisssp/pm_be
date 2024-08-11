@@ -40,7 +40,7 @@ func (h *UserHandler) HandleAuthenticate(c *gin.Context) {
 		return
 	}
 
-	response, err := h.userUsecase.Authenticate(c, &loginRequest)
+	token, err := h.userUsecase.Authenticate(c, &loginRequest)
 	if err != nil {
 		c.Error(err)
 		h.p.Logger.Error("AUTHENTICATE_FAILED", map[string]interface{}{
@@ -49,7 +49,8 @@ func (h *UserHandler) HandleAuthenticate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, payload.SuccessResponse(response, ""))
+	authResponse := payload.AuthResponse{Token: token}
+	c.JSON(http.StatusOK, payload.SuccessResponse(authResponse, ""))
 }
 
 // HandleCreateUser Create User 			godoc

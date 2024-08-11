@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"math"
 	"net/http"
 	"pm/application"
 	"pm/infrastructure/controllers/payload"
+	"pm/infrastructure/mapper"
 	"pm/infrastructure/persistences/base"
 	"pm/utils"
 	"strconv"
@@ -122,7 +124,14 @@ func (h *OrderHandler) HandleGetOrderByID(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	utils.HttpSuccessResponse(c, order, "")
+
+	orderResponse := mapper.OrderToOrderResponse(order)
+	var totalPrice float64 = 0
+	for _, v := range order.OrderItems {
+		totalPrice += v.Price * float64(v.Quantity)
+	}
+	orderResponse.Total = math.Round(totalPrice*100) / 100
+	utils.HttpSuccessResponse(c, orderResponse, "")
 }
 
 func (h *OrderHandler) HandleDeleteOrderByID(c *gin.Context) {

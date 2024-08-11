@@ -12,10 +12,10 @@ import (
 
 type CategoryUsecase interface {
 	CreateCategory(*gin.Context, *payload.CreateCategoryRequest) error
-	GetAllCategories(*gin.Context, *entity.CategoryFilter, *entity.Pagination) (*payload.ListCategoryResponses, error)
-	GetCategoryByID(*gin.Context, int64) (*payload.CategoryResponse, error)
+	GetAllCategories(*gin.Context, *entity.CategoryFilter, *entity.Pagination) ([]entity.Category, error)
+	GetCategoryByID(*gin.Context, int64) (*entity.Category, error)
 	DeleteCategoryByID(*gin.Context, int64) error
-	UpdateCategoryByID(*gin.Context, int64, payload.UpdateCategoryRequest) (*payload.CategoryResponse, error)
+	UpdateCategoryByID(*gin.Context, int64, payload.UpdateCategoryRequest) (*entity.Category, error)
 }
 
 type categoryUsecase struct {
@@ -26,7 +26,7 @@ func NewCategoryUsecase(p *base.Persistence) CategoryUsecase {
 	return categoryUsecase{p}
 }
 
-func (categoryUsecase categoryUsecase) UpdateCategoryByID(c *gin.Context, id int64, updatePayload payload.UpdateCategoryRequest) (*payload.CategoryResponse, error) {
+func (categoryUsecase categoryUsecase) UpdateCategoryByID(c *gin.Context, id int64, updatePayload payload.UpdateCategoryRequest) (*entity.Category, error) {
 	span := categoryUsecase.p.Logger.Start(c, "UPDATE_CATEGORY_USECASES", categoryUsecase.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
 	categoryUsecase.p.Logger.Info("UPDATE_CATEGORY", map[string]interface{}{"data": updatePayload})
@@ -43,12 +43,12 @@ func (categoryUsecase categoryUsecase) UpdateCategoryByID(c *gin.Context, id int
 		categoryUsecase.p.Logger.Error("UPDATE_CATEGORY: ERROR", map[string]interface{}{"error": err.Error()})
 		return nil, err
 	}
-	cateResponse := mapper.CategoryToCategoryResponse(cate)
-	categoryUsecase.p.Logger.Info("UPDATE_CATEGORY_SUCCESSFULLY", map[string]interface{}{"category_response": cateResponse})
-	return &cateResponse, nil
+
+	categoryUsecase.p.Logger.Info("UPDATE_CATEGORY_SUCCESSFULLY", map[string]interface{}{"category_response": cate})
+	return cate, nil
 }
 
-func (categoryUsecase categoryUsecase) GetCategoryByID(c *gin.Context, id int64) (*payload.CategoryResponse, error) {
+func (categoryUsecase categoryUsecase) GetCategoryByID(c *gin.Context, id int64) (*entity.Category, error) {
 	span := categoryUsecase.p.Logger.Start(c, "GET_CATEGORY_USECASES", categoryUsecase.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
 	categoryUsecase.p.Logger.Info("GET_CATEGORY", map[string]interface{}{"data": id})
@@ -59,10 +59,9 @@ func (categoryUsecase categoryUsecase) GetCategoryByID(c *gin.Context, id int64)
 		categoryUsecase.p.Logger.Error("GET_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
 		return nil, err
 	}
-	cateResponse := mapper.CategoryToCategoryResponse(cate)
 
-	categoryUsecase.p.Logger.Info("GET_CATEGORY_SUCCESSFULLY", map[string]interface{}{"data": cateResponse})
-	return &cateResponse, nil
+	categoryUsecase.p.Logger.Info("GET_CATEGORY_SUCCESSFULLY", map[string]interface{}{"data": cate})
+	return cate, nil
 }
 
 func (categoryUsecase categoryUsecase) DeleteCategoryByID(c *gin.Context, id int64) error {
@@ -107,7 +106,7 @@ func (categoryUsecase categoryUsecase) CreateCategory(c *gin.Context, reqPayload
 	return nil
 }
 
-func (categoryUsecase categoryUsecase) GetAllCategories(c *gin.Context, filter *entity.CategoryFilter, pagination *entity.Pagination) (*payload.ListCategoryResponses, error) {
+func (categoryUsecase categoryUsecase) GetAllCategories(c *gin.Context, filter *entity.CategoryFilter, pagination *entity.Pagination) ([]entity.Category, error) {
 	span := categoryUsecase.p.Logger.Start(c, "GET_ALL_CATEGORIES_USECASES", categoryUsecase.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
 	categoryUsecase.p.Logger.Info("GET_ALL_CATEGORIES", map[string]interface{}{
@@ -126,7 +125,7 @@ func (categoryUsecase categoryUsecase) GetAllCategories(c *gin.Context, filter *
 		categoryUsecase.p.Logger.Info("GET_ALL_CATEGORIES_FAILED", map[string]interface{}{"message": err.Error()})
 		return nil, err
 	}
-	listCatesResponse := mapper.CategoriesToListCategoriesResponse(cates, pagination)
-	categoryUsecase.p.Logger.Info("GET_ALL_CATEGORIES_SUCCESSFULLY", map[string]interface{}{"data": listCatesResponse})
-	return &listCatesResponse, nil
+
+	categoryUsecase.p.Logger.Info("GET_ALL_CATEGORIES_SUCCESSFULLY", map[string]interface{}{"data": cates})
+	return cates, nil
 }

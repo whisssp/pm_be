@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"math"
 	"pm/domain/entity"
 	products2 "pm/domain/repository/products"
 	"pm/infrastructure/controllers/payload"
@@ -21,10 +20,10 @@ const orderEntity string = "orders"
 
 type OrderUsecase interface {
 	CreateOrder(*gin.Context, *payload.CreateOrderRequest) error
-	GetAllOrders(filter *entity.OrderFilter, pagination *entity.Pagination) (*payload.ListOrderResponses, error)
-	GetOrderByID(*gin.Context, int64) (*payload.OrderResponse, error)
+	GetAllOrders(filter *entity.OrderFilter, pagination *entity.Pagination) ([]entity.Order, error)
+	GetOrderByID(*gin.Context, int64) (*entity.Order, error)
 	DeleteOrderByID(id int64) error
-	UpdateOrderByID(id int64, updatePayload payload.UpdateOrderRequest) (*payload.OrderResponse, error)
+	UpdateOrderByID(id int64, updatePayload payload.UpdateOrderRequest) (*entity.Order, error)
 }
 
 type orderUsecase struct {
@@ -119,12 +118,12 @@ func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrde
 	return nil
 }
 
-func (o orderUsecase) GetAllOrders(filter *entity.OrderFilter, pagination *entity.Pagination) (*payload.ListOrderResponses, error) {
+func (o orderUsecase) GetAllOrders(filter *entity.OrderFilter, pagination *entity.Pagination) ([]entity.Order, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (o orderUsecase) GetOrderByID(c *gin.Context, id int64) (*payload.OrderResponse, error) {
+func (o orderUsecase) GetOrderByID(c *gin.Context, id int64) (*entity.Order, error) {
 	span := o.p.Logger.Start(c, "GET_ORDER_BY_ID: USECASES", o.p.Logger.SetContextWithSpanFunc())
 	defer span.End()
 	o.p.Logger.Info("STARTING: GET ORDER BY ID", map[string]interface{}{"id": id})
@@ -136,14 +135,9 @@ func (o orderUsecase) GetOrderByID(c *gin.Context, id int64) (*payload.OrderResp
 		o.p.Logger.Error("GET_ORDER: ERROR", map[string]interface{}{"error": err.Error()})
 		return nil, err
 	}
-	orderResponse := mapper.OrderToOrderResponse(order)
-	var totalPrice float64 = 0
-	for _, v := range order.OrderItems {
-		totalPrice += v.Price * float64(v.Quantity)
-	}
-	orderResponse.Total = math.Round(totalPrice*100) / 100
-	o.p.Logger.Error("GET_ORDER: SUCCESSFULLY", map[string]interface{}{"order_response": orderResponse})
-	return &orderResponse, nil
+
+	o.p.Logger.Error("GET_ORDER: SUCCESSFULLY", map[string]interface{}{"order_response": order})
+	return order, nil
 }
 
 func (o orderUsecase) DeleteOrderByID(id int64) error {
@@ -151,7 +145,7 @@ func (o orderUsecase) DeleteOrderByID(id int64) error {
 	panic("implement me")
 }
 
-func (o orderUsecase) UpdateOrderByID(id int64, updatePayload payload.UpdateOrderRequest) (*payload.OrderResponse, error) {
+func (o orderUsecase) UpdateOrderByID(id int64, updatePayload payload.UpdateOrderRequest) (*entity.Order, error) {
 	//TODO implement me
 	panic("implement me")
 }

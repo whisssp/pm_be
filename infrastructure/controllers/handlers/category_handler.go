@@ -7,6 +7,7 @@ import (
 	"pm/application"
 	"pm/domain/entity"
 	"pm/infrastructure/controllers/payload"
+	"pm/infrastructure/mapper"
 	"pm/infrastructure/persistences/base"
 	"strconv"
 )
@@ -94,7 +95,9 @@ func (h CategoryHandler) HandleGetAllCategories(c *gin.Context) {
 		h.p.Logger.Error("GET_ALL_CATEGORIES_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, payload.SuccessResponse(categories, ""))
+
+	listCatesResponse := mapper.CategoriesToListCategoriesResponse(categories, &pagination)
+	c.JSON(http.StatusOK, payload.SuccessResponse(listCatesResponse, ""))
 }
 
 // HandleGetCategoryByID GetCategoryByID godoc
@@ -202,5 +205,6 @@ func (h CategoryHandler) HandleUpdateCategoryByID(c *gin.Context) {
 		h.p.Logger.Error("UPDATE_CATEGORY_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, payload.SuccessResponse(categoryUpdated, ""))
+	cateResponse := mapper.CategoryToCategoryResponse(categoryUpdated)
+	c.JSON(http.StatusOK, payload.SuccessResponse(cateResponse, ""))
 }

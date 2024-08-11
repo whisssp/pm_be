@@ -7,6 +7,7 @@ import (
 	"pm/application"
 	"pm/domain/entity"
 	"pm/infrastructure/controllers/payload"
+	"pm/infrastructure/mapper"
 	"pm/infrastructure/persistences/base"
 	"strconv"
 	"strings"
@@ -100,8 +101,9 @@ func (handler *ProductHandler) HandleGetAllProducts(c *gin.Context) {
 		return
 	}
 
-	handler.p.Logger.Info("GET_ALL_PRODUCTS_SUCCESSFULLY", map[string]interface{}{"list_products_response": prods})
-	c.JSON(http.StatusOK, payload.SuccessResponse(prods, ""))
+	listProdResponse := mapper.ProdsToListProdsResponse(prods, pagination)
+	handler.p.Logger.Info("GET_ALL_PRODUCTS_SUCCESSFULLY", map[string]interface{}{"list_products_response": listProdResponse})
+	c.JSON(http.StatusOK, payload.SuccessResponse(listProdResponse, ""))
 }
 
 // HandleGetProductByID GetProductByID godoc
@@ -135,8 +137,9 @@ func (handler *ProductHandler) HandleGetProductByID(c *gin.Context) {
 		return
 	}
 
-	handler.p.Logger.Info("GET_PRODUCT_SUCCESSFULLY", map[string]interface{}{"product": prod})
-	c.JSON(http.StatusOK, payload.SuccessResponse(prod, ""))
+	prodResponse := mapper.ProductToProductResponse(prod)
+	handler.p.Logger.Info("GET_PRODUCT_SUCCESSFULLY", map[string]interface{}{"product": prodResponse})
+	c.JSON(http.StatusOK, payload.SuccessResponse(prodResponse, ""))
 }
 
 // HandleDeleteProductByID DeleteProductByID godoc
@@ -213,8 +216,9 @@ func (handler *ProductHandler) HandleUpdateProductByID(c *gin.Context) {
 		handler.p.Logger.Error("UPDATE_PRODUCT_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
-	handler.p.Logger.Info("UPDATE_PRODUCT_SUCCESSFULLY", map[string]interface{}{"product_response": prodUpdated})
-	c.JSON(http.StatusOK, payload.SuccessResponse(prodUpdated, ""))
+	prodResponse := mapper.ProductToProductResponse(prodUpdated)
+	handler.p.Logger.Info("UPDATE_PRODUCT_SUCCESSFULLY", map[string]interface{}{"product_response": prodResponse})
+	c.JSON(http.StatusOK, payload.SuccessResponse(prodResponse, ""))
 }
 
 func (handler *ProductHandler) HandleGetReport(c *gin.Context) {
