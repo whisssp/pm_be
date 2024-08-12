@@ -49,24 +49,17 @@ func (o OrderRepository) IsAvailableStockByOrderItems(persistence *base.Persiste
 }
 
 func (o OrderRepository) Create(order *entity.Order) error {
-	span := o.p.Logger.Start(o.c, "CREATE_ORDER_DATABASE")
-	defer span.End()
-	o.p.Logger.Info("STARTING: CREATE ORDER", map[string]interface{}{"order": order})
 
 	tx := o.db.Begin()
 
 	if err := tx.Create(&order).Error; err != nil {
-		o.p.Logger.Error("CREATE_ORDER: ERROR_DB_CREATE", map[string]interface{}{"error": err.Error()})
 		tx.Rollback()
 		return payload.ErrDB(err)
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		o.p.Logger.Error("CREATE_ORDER: ERROR_DB", map[string]interface{}{"error": err.Error()})
 		return payload.ErrDB(err)
 	}
-
-	o.p.Logger.Info("CREATE_ORDER_SUCCESSFULLY", map[string]interface{}{"order": order})
 
 	return nil
 }

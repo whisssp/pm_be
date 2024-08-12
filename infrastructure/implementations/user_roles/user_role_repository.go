@@ -20,16 +20,16 @@ func (u UserRoleRepository) GetUserRoleByID(i int64) (*entity.UserRole, error) {
 	//u.p.Logger.SetContextWithSpan(span)
 	span := u.p.Logger.Start(u.c, "GET_USER_ROLE_BY_ID: DATABASE")
 	defer span.End()
-	u.p.Logger.Info("STARTING: GET USER ROLE BY ID", map[string]interface{}{"id": i}, u.p.Logger.SetContextWithSpanFunc())
+	u.p.Logger.Info("STARTING: GET USER ROLE BY ID", map[string]interface{}{"id": i})
 	var userRole entity.UserRole
 	if err := u.db.Debug().Model(&entity.UserRole{}).Where("id = ?", i).First(&userRole).Error; err != nil {
-		u.p.Logger.Error("GET_USER_BY_ID: ERROR", map[string]interface{}{"error": err.Error()}, u.p.Logger.SetContextWithSpanFunc())
+		u.p.Logger.Error("GET_USER_BY_ID: ERROR", map[string]interface{}{"error": err.Error()})
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, payload.ErrEntityNotFound("user_roles", err)
 		}
 		return nil, payload.ErrDB(err)
 	}
-	u.p.Logger.Info("GET_USER_BY_ID: SUCCESSFULLY", map[string]interface{}{"user_role": userRole}, u.p.Logger.SetContextWithSpanFunc())
+	u.p.Logger.Info("GET_USER_BY_ID: SUCCESSFULLY", map[string]interface{}{"user_role": userRole})
 	return &userRole, nil
 }
 

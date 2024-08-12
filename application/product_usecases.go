@@ -49,7 +49,7 @@ func (p productUsecase) CreateProduct(c *gin.Context, reqPayload *payload.Create
 
 	prod := mapper.PayloadToProduct(reqPayload)
 	productRepo := products.NewProductRepository(c, p.p, p.p.GormDB)
-	err := productRepo.Create(span, prod)
+	err := productRepo.Create(prod)
 	if err != nil {
 		p.p.Logger.Error("CREATE_PRODUCT: FAILED", map[string]interface{}{"error": err.Error()})
 		return err
@@ -69,7 +69,7 @@ func (p productUsecase) CreateProduct(c *gin.Context, reqPayload *payload.Create
 			sugar.Infow("ERROR - Goroutine - set product created recently to redis")
 			if !strings.Contains(err.Error(), "not found") {
 				fmt.Println("error adding product to redis", err)
-				prods, err := productRepo.GetAllProducts(span, nil, nil)
+				prods, err := productRepo.GetAllProducts(nil, nil)
 				if err != nil {
 					fmt.Println("\nerror getting product from db", err)
 				}
@@ -114,7 +114,7 @@ func (p productUsecase) GetAllProducts(c *gin.Context, filter *entity.ProductFil
 			return prods, nil
 		}
 	}
-	prods, err := productRepo.GetAllProducts(span, filter, pagination)
+	prods, err := productRepo.GetAllProducts(filter, pagination)
 	if err != nil {
 		p.p.Logger.Info("GET_ALL_PRODUCTS: ERROR", map[string]interface{}{"error": err.Error()})
 		return nil, err
@@ -144,7 +144,7 @@ func (p productUsecase) GetProductByID(c *gin.Context, id int64) (*entity.Produc
 		return &prod, nil
 	}
 
-	prodPointer, err := productRepo.GetProductByID(span, id)
+	prodPointer, err := productRepo.GetProductByID(id)
 	if err != nil {
 		p.p.Logger.Error("GET_PRODUCT: ERROR", map[string]interface{}{"error": err.Error()})
 		return nil, err
@@ -165,12 +165,12 @@ func (p productUsecase) DeleteProductByID(c *gin.Context, id int64) error {
 		fmt.Printf("error deleting on redis: key: %v - error: %v", id, err)
 	}
 	productRepo := products.NewProductRepository(c, p.p, p.p.GormDB)
-	prod, err := productRepo.GetProductByID(span, id)
+	prod, err := productRepo.GetProductByID(id)
 	if err != nil {
 		p.p.Logger.Info("DELETE_PRODUCT: PRODUCT NOT FOUND", map[string]interface{}{"error": err.Error()})
 		return err
 	}
-	err = productRepo.DeleteProduct(span, prod)
+	err = productRepo.DeleteProduct(prod)
 	if err != nil {
 		p.p.Logger.Info("DELETE_PRODUCT: ERROR", map[string]interface{}{"error": err.Error()})
 		return err
@@ -196,14 +196,14 @@ func (p productUsecase) UpdateProductByID(c *gin.Context, id int64, updatePayloa
 	}
 
 	productRepo := products.NewProductRepository(c, p.p, p.p.GormDB)
-	prod, err := productRepo.GetProductByID(span, id)
+	prod, err := productRepo.GetProductByID(id)
 	if err != nil {
 		p.p.Logger.Error("UPDATE_PRODUCT: ERROR: PRODUCT NOT FOUND", map[string]interface{}{"error": err.Error()})
 		return nil, err
 	}
 	updatePayload.ID = id
 	mapper.UpdateProduct(prod, updatePayload)
-	_, err = productRepo.Update(span, prod)
+	_, err = productRepo.Update(prod)
 	if err != nil {
 		p.p.Logger.Error("UPDATE_PRODUCT: ERROR", map[string]interface{}{"error": err.Error()})
 		return nil, payload.ErrCannotUpdateEntity(entityName, err)

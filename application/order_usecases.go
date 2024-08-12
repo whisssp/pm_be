@@ -55,8 +55,8 @@ func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrde
 		}
 		isAvailable = (p.Stock - int64(e.Quantity)) >= 0
 		if !isAvailable {
-			err := fmt.Errorf("product: %v is not available, please check again", e.ProductID)
-			o.p.Logger.Error("CREATE_ORDER: ERROR PRODUCT IS NOT AVAILABLE", map[string]interface{}{"error": err.Error()})
+			//err := fmt.Errorf("product: %v is not available, please check again", e.ProductID)
+			//o.p.Logger.Error("CREATE_ORDER: ERROR PRODUCT IS NOT AVAILABLE", map[string]interface{}{"error": err.Error()})
 			prods = make([]entity.Product, 0)
 			break
 		}
@@ -110,7 +110,7 @@ func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrde
 		sugar := logger.Sugar()
 
 		sugar.Infow("GOROUTINE_UPDATE_PRODUCT_QUANTITY", map[string]interface{}{"data": gProds})
-		prods, err := prodRepo.UpdateMultiProduct(nil, prods...)
+		prods, err := prodRepo.UpdateMultiProduct(prods...)
 		if err != nil {
 			sugar.Errorw("GOROUTINE_UPDATE_QUANTITY_PRODUCT_FAILED", map[string]interface{}{"products": prods, "message": err.Error()})
 		}
