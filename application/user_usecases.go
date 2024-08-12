@@ -8,6 +8,7 @@ import (
 	"pm/infrastructure/implementations/users"
 	"pm/infrastructure/mapper"
 	"pm/infrastructure/persistences/base"
+	"pm/infrastructure/persistences/base/logger"
 	"pm/utils"
 )
 
@@ -29,43 +30,43 @@ func NewUserUsecase(p *base.Persistence) UserUsecase {
 }
 
 func (u userUsecase) Authenticate(c *gin.Context, request *payload.LoginRequest) (string, error) {
-	span := u.p.Logger.Start(c, "AUTHENTICATE_USECASES", u.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
-	u.p.Logger.Info("STARTING: AUTHENTICATE", map[string]interface{}{"data": request})
+	newlogger := logger.NewLogger()
+	ctx, span := newlogger.Start(c, "AUTHENTICATE_USECASES")
+	defer newlogger.End()
+	newlogger.Info("STARTING: AUTHENTICATE", map[string]interface{}{"data": request})
 
 	if err := utils.ValidateReqPayload(request); err != nil {
-		u.p.Logger.Error("AUTHENTICATE: INVALID REQUEST", map[string]interface{}{"message": err.Error()})
+		newlogger.Error("AUTHENTICATE: INVALID REQUEST", map[string]interface{}{"message": err.Error()})
 		return "", payload.ErrInvalidRequest(err)
 	}
+	userRepo := users.NewUserRepository(ctx, u.p, u.p.GormDB)
 
-	userRepo := users.NewUserRepository(c, u.p, u.p.GormDB)
-
-	user, err := userRepo.GetUserByEmail(span, request.Email)
+	user, err := userRepo.GetUserByEmail(request.Email)
 	if err != nil {
-		u.p.Logger.Error("AUTHENTICATE: EMAIL DOESN'T EXISTS", map[string]interface{}{"error": err.Error()}, u.p.Logger.UseGivenSpan(span))
+		newlogger.Error("AUTHENTICATE: EMAIL DOESN'T EXISTS", map[string]interface{}{"error": err.Error()})
 		return "", err
 	}
 
 	if !utils.ComparePasswords([]byte(user.Password), []byte(request.Password)) {
-		//cspan := u.p.Logger.Start(c, "AUTHENTICATE: PASSWORD FAILED")
+		//cspan := newlogger.Start(c, "AUTHENTICATE: PASSWORD FAILED")
 		//defer cspan.End()
-		u.p.Logger.Error("AUTHENTICATE: WRONG PASSWORD", map[string]interface{}{"error": "password is incorrect"})
+		newlogger.Error("AUTHENTICATE: WRONG PASSWORD", map[string]interface{}{"error": "password is incorrect"})
 		return "", payload.ErrWrongPassword(errors.New("incorrect email or password"))
 	}
 
-	token, err := utils.JwtGenerateJwtToken(c, u.p, user, span)
+	token, err := utils.JwtGenerateJwtToken(ctx, u.p, user, span)
 	if err != nil {
-		u.p.Logger.Error("AUTHENTICATE: GENERATE TOKEN FAILED", map[string]interface{}{"error": err.Error()})
+		newlogger.Error("AUTHENTICATE: GENERATE TOKEN FAILED", map[string]interface{}{"error": err.Error()})
 		return "", err
 	}
 
-	u.p.Logger.Info("AUTHENTICATE: SUCCESSFULLY", map[string]interface{}{"authenticate_response": token})
+	newlogger.Info("AUTHENTICATE: SUCCESSFULLY", map[string]interface{}{"authenticate_response": token})
 	return token, nil
 }
 
 func (u userUsecase) CreateUser(c *gin.Context, request *payload.UserRequest) error {
-	span := u.p.Logger.Start(c, "CREATE_USER_USECASES", u.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
+	_, _ = u.p.Logger.Start(c, "CREATE_USER_USECASES")
+	defer u.p.Logger.End()
 	u.p.Logger.Info("CREATE_USER", map[string]interface{}{"data": request})
 
 	if err := utils.ValidateReqPayload(request); err != nil {
@@ -87,7 +88,7 @@ func (u userUsecase) CreateUser(c *gin.Context, request *payload.UserRequest) er
 
 	u.p.Logger.Info("CREATE_USER_INFO", map[string]interface{}{"data": user})
 	user.Password = hashed
-	if err := userRepo.Create(span, user); err != nil {
+	if err := userRepo.Create(user); err != nil {
 		u.p.Logger.Error("CREATE_USER_FAILED", map[string]interface{}{"message": err.Error()})
 		return err
 	}

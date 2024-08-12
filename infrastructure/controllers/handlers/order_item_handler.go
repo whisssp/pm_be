@@ -33,8 +33,6 @@ func NewOrderItemHandler(p *base.Persistence) *OrderItemHandler {
 //	@Failure		500			{object}	payload.AppError
 //	@Router			/order-items	[post]
 func (oi *OrderItemHandler) HandleCreateNewOrderItem(c *gin.Context) {
-	span := oi.p.Logger.Start(c, "handlers/HandleCreateNewOrderItem", oi.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
 
 	var orderItemRequest payload.OrderItemsRequest
 	if err := c.ShouldBindJSON(&orderItemRequest); err != nil {
@@ -67,8 +65,6 @@ func (oi *OrderItemHandler) HandleCreateNewOrderItem(c *gin.Context) {
 //	@Failure		500	{object}	payload.AppError
 //	@Router			/order-items/{id}	[get]
 func (oi *OrderItemHandler) HandleGetOrderItemByID(c *gin.Context) {
-	span := oi.p.Logger.Start(c, "handlers/HandleGetOrderItemByID", oi.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
 
 	id, e := strconv.ParseInt(c.Param("id"), 10, 64)
 	if e != nil {
@@ -110,8 +106,6 @@ func (oi *OrderItemHandler) HandleGetOrderItemByID(c *gin.Context) {
 //	@Failure		500			{object}	payload.AppError
 //	@Router			/order-items/{id}	[put]
 func (oi *OrderItemHandler) HandleUpdateOrderItemByID(c *gin.Context) {
-	span := oi.p.Logger.Start(c, "handlers/HandleUpdateOrderItemByID", oi.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
 
 	//id, e := strconv.ParseInt(c.Param("id"), 10, 64)
 	//if e != nil {
@@ -158,8 +152,6 @@ func (oi *OrderItemHandler) HandleUpdateOrderItemByID(c *gin.Context) {
 //	@Failure		500	{object}	payload.AppError
 //	@Router			/order-items/{id}	[delete]
 func (oi *OrderItemHandler) HandleDeleteOrderItemByID(c *gin.Context) {
-	span := oi.p.Logger.Start(c, "handlers/HandleDeleteOrderItemByID", oi.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
 
 	id, e := strconv.ParseInt(c.Param("id"), 10, 64)
 	if e != nil {
@@ -198,8 +190,6 @@ func (oi *OrderItemHandler) HandleDeleteOrderItemByID(c *gin.Context) {
 //	@Failure		500	{object}	payload.AppError
 //	@Router			/order-items	[get]
 func (oi *OrderItemHandler) HandleGetAllOrderItems(c *gin.Context) {
-	span := oi.p.Logger.Start(c, "handlers/HandleGetAllOrderItems", oi.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
 
 	orderItems, err := oi.orderItemUsecase.GetAllOrderItems(c)
 	if err != nil {

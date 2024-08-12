@@ -1,7 +1,6 @@
 package honeycomb
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
@@ -9,7 +8,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-	"log"
 	"os"
 	"runtime"
 )
@@ -24,28 +22,25 @@ func NewHoneycombRepository() *HoneycombRepository {
 }
 
 // Start Honeycomb
-func (h *HoneycombRepository) Start(c *gin.Context, info string) trace.Span {
-	h.c = c
+func (h *HoneycombRepository) Start(c *gin.Context, info string) (*gin.Context, trace.Span) {
 	_, file, line, _ := runtime.Caller(2)
-	// Retrieve otel_context from Gin context if it exists
-	ctxValue, exists := c.Get("otel_context")
-	var ctx context.Context
-	if exists {
-		ctx, _ = ctxValue.(context.Context)
-	} else {
-		log.Println("Getting this from" + info)
-		ctx = c.Request.Context()
-	}
+
 	tracer := otel.Tracer("")
-	_, span := tracer.Start(ctx, info, trace.WithAttributes(
+	ctx, span := tracer.Start(c.Request.Context(), info, trace.WithAttributes(
 		attribute.String("file", file),
-		attribute.String("client_ip", h.c.ClientIP()),
+		attribute.String("client_ip", c.ClientIP()),
 		attribute.Int("line", line),
 	))
-
 	h.span = span
+	temp := c.Copy()
+	temp.Request = c.Request.WithContext(ctx)
+	h.c = temp
+	return temp, span
+}
 
-	return span
+func (h *HoneycombRepository) End() {
+	h.span.End()
+	return
 }
 
 func createTraceAttributes(level, jsonData, file string, line int, clientIP string) []attribute.KeyValue {
@@ -147,16 +142,4 @@ func (h *HoneycombRepository) Fatal(msg string, fields map[string]interface{}) {
 	attrs := createTraceAttributes("Fatal", string(jsonData), file, line, h.c.ClientIP())
 	h.span.AddEvent(msg, trace.WithAttributes(attrs...))
 	os.Exit(1)
-}
-
-func (h *HoneycombRepository) GetSpan() trace.Span {
-	return h.span
-}
-
-func (h *HoneycombRepository) GetContext() *gin.Context {
-	return h.c
-}
-
-func (h *HoneycombRepository) UseGivenSpan(span trace.Span) {
-	h.span = span
 }

@@ -10,9 +10,6 @@ import (
 
 type LoggerRepo struct {
 	loggers []loggers.LoggerRepository
-	c       *gin.Context
-	//span          trace.Span
-	honeycombRepo *honeycomb.HoneycombRepository
 }
 
 const (
@@ -23,16 +20,15 @@ const (
 
 type Option func(*LoggerRepo)
 
+var logger *LoggerRepo
+
 // NewLoggerRepository creates a new logger repository based on the specified channels
 func NewLoggerRepository(channels []string) *LoggerRepo {
 	var loggers []loggers.LoggerRepository
-	var honeycombRepo *honeycomb.HoneycombRepository
 
 	if len(channels) < 1 {
 		return &LoggerRepo{
-			loggers:       loggers,
-			c:             nil,
-			honeycombRepo: honeycombRepo,
+			loggers: loggers,
 		}
 	}
 
@@ -41,19 +37,14 @@ func NewLoggerRepository(channels []string) *LoggerRepo {
 		case Zap:
 			loggers = append(loggers, zap.NewZapRepository())
 		case Honeycomb:
-			honeycombRepo = honeycomb.NewHoneycombRepository()
-			loggers = append(loggers, honeycombRepo)
+			loggers = append(loggers, honeycomb.NewHoneycombRepository())
 		default:
 			// You might want to log or handle unsupported channels
 			continue
 		}
 	}
 
-	//var span trace.Span
-	//if honeycombRepo != nil {
-	//	span = honeycombRepo.GetSpan()
-	//}
-	return &LoggerRepo{loggers: loggers, c: nil, honeycombRepo: honeycombRepo}
+	return &LoggerRepo{loggers: loggers}
 }
 
 // Debug logs a debug message
@@ -92,43 +83,23 @@ func (l *LoggerRepo) Fatal(msg string, fields map[string]interface{}, options ..
 }
 
 // Start function
-func (l *LoggerRepo) Start(c *gin.Context, info string, options ...Option) trace.Span {
-	l.c = c
-
+func (l *LoggerRepo) Start(c *gin.Context, info string, options ...Option) (*gin.Context, trace.Span) {
+	var ctx *gin.Context
 	var span trace.Span
 	for _, logger := range l.loggers {
 		_, ok := logger.(*honeycomb.HoneycombRepository)
 		if ok {
-			span = logger.Start(c, info)
+			ctx, span = logger.Start(c, info)
 		} else {
 			logger.Start(c, info)
 		}
 	}
 
-	// Execute optional functions
-	for _, opts := range options {
-		opts(l)
-	}
-
-	return span
+	return ctx, span
 }
 
 func (l *LoggerRepo) End() {
-	l.honeycombRepo.GetSpan().End()
-}
-
-func (l *LoggerRepo) SetContextWithSpanFunc() Option {
-	return func(l *LoggerRepo) {
-		l.c.Set("otel_context", trace.ContextWithSpan(l.c, l.honeycombRepo.GetSpan()))
-	}
-}
-
-func (l *LoggerRepo) SetContextWithSpan(span trace.Span) {
-	l.c.Set("otel_context", trace.ContextWithSpan(l.c, span))
-}
-
-func (l *LoggerRepo) UseGivenSpan(span trace.Span) Option {
-	return func(l *LoggerRepo) {
-		l.honeycombRepo.UseGivenSpan(span)
+	for _, logger := range l.loggers {
+		logger.End()
 	}
 }

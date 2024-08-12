@@ -22,8 +22,7 @@ func NewOrderRepository(c *gin.Context, p *base.Persistence, db *gorm.DB) orders
 }
 
 func (o OrderRepository) IsAvailableStockByOrderItems(persistence *base.Persistence, c *gin.Context, orderItems ...entity.OrderItem) ([]entity.Product, error) {
-	span := persistence.Logger.Start(c, "CHECK_STOCK")
-	defer span.End()
+
 	persistence.Logger.Info("CHECK_STOCK", map[string]interface{}{"data": orderItems})
 
 	ps := make([]entity.Product, 0)

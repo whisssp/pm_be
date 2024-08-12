@@ -140,8 +140,8 @@ func (prodRepo *ProductRepository) GetProductByOrderItem(orderItems ...entity.Or
 // return: ([]Product, nil) when all the product in order is available, (nil, error) when one of products is not available
 */
 func (prodRepo *ProductRepository) IsAvailableStockByOrderItems(parentSpan trace.Span, orderItems ...entity.OrderItem) ([]entity.Product, error) {
-	span := prodRepo.p.Logger.Start(prodRepo.c, "CHECK_STOCK")
-	defer span.End()
+	_, _ = prodRepo.p.Logger.Start(prodRepo.c, "CHECK_STOCK")
+	defer prodRepo.p.Logger.End()
 	prodRepo.p.Logger.Info("CHECK_STOCK", map[string]interface{}{"data": orderItems})
 
 	ps := make([]entity.Product, 0)

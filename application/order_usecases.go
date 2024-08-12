@@ -35,14 +35,14 @@ func NewOrderUsecase(p *base.Persistence) OrderUsecase {
 }
 
 func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrderRequest) error {
-	span := o.p.Logger.Start(c, "CREATE_ORDER: USECASES", o.p.Logger.SetContextWithSpanFunc())
+	ctx, span := o.p.Logger.Start(c, "CREATE_ORDER: USECASES")
 	defer span.End()
 	o.p.Logger.Info("STARTING: CREATE_ORDER", map[string]interface{}{"data": reqPayload})
 
 	order := mapper.CreateOrderPayloadToOrder(reqPayload)
 	prods := make([]entity.Product, 0)
-	productRepo := products.NewProductRepository(c, o.p, o.p.GormDB)
-	orderRepo := orders.NewOrderRepository(c, o.p, o.p.GormDB)
+	productRepo := products.NewProductRepository(ctx, o.p, o.p.GormDB)
+	orderRepo := orders.NewOrderRepository(ctx, o.p, o.p.GormDB)
 	var err error
 
 	// check product stock on redis
@@ -124,12 +124,12 @@ func (o orderUsecase) GetAllOrders(filter *entity.OrderFilter, pagination *entit
 }
 
 func (o orderUsecase) GetOrderByID(c *gin.Context, id int64) (*entity.Order, error) {
-	span := o.p.Logger.Start(c, "GET_ORDER_BY_ID: USECASES", o.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
+	ctx, _ := o.p.Logger.Start(c, "GET_ORDER_BY_ID: USECASES")
+	defer o.p.Logger.End()
 	o.p.Logger.Info("STARTING: GET ORDER BY ID", map[string]interface{}{"id": id})
 
 	db := o.p.GormDB
-	orderRepo := orders.NewOrderRepository(c, o.p, db)
+	orderRepo := orders.NewOrderRepository(ctx, o.p, db)
 	order, err := orderRepo.GetOrderByID(id)
 	if err != nil {
 		o.p.Logger.Error("GET_ORDER: ERROR", map[string]interface{}{"error": err.Error()})

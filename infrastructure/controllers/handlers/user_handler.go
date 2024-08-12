@@ -6,6 +6,7 @@ import (
 	"pm/application"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/persistences/base"
+	"pm/infrastructure/persistences/base/logger"
 )
 
 type UserHandler struct {
@@ -30,20 +31,21 @@ func NewUserHandler(p *base.Persistence) *UserHandler {
 // @Failure 			500 	{object} payload.AppError
 // @Router				/users/authenticate [post]
 func (h *UserHandler) HandleAuthenticate(c *gin.Context) {
-	span := h.p.Logger.Start(c, "handlers/HandleAuthenticate", h.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
+	newlogger := logger.NewLogger()
+	ctx, _ := newlogger.Start(c, "handlers/HandleAuthenticate")
+	defer newlogger.End()
 
 	var loginRequest payload.LoginRequest
 	if err := c.ShouldBindJSON(&loginRequest); err != nil {
 		c.Error(payload.ErrInvalidRequest(err))
-		h.p.Logger.Error("AUTHENTICATE_FAILED", map[string]interface{}{"message": err.Error()})
+		newlogger.Error("AUTHENTICATE_FAILED", map[string]interface{}{"message": err.Error()})
 		return
 	}
 
-	token, err := h.userUsecase.Authenticate(c, &loginRequest)
+	token, err := h.userUsecase.Authenticate(ctx, &loginRequest)
 	if err != nil {
 		c.Error(err)
-		h.p.Logger.Error("AUTHENTICATE_FAILED", map[string]interface{}{
+		newlogger.Error("AUTHENTICATE_FAILED", map[string]interface{}{
 			"message": err.Error(),
 		})
 		return
@@ -65,8 +67,6 @@ func (h *UserHandler) HandleAuthenticate(c *gin.Context) {
 // @Failure 			500 	{object} payload.AppError
 // @Router				/users [post]
 func (h *UserHandler) HandleCreateUser(c *gin.Context) {
-	span := h.p.Logger.Start(c, "handlers/HandleCreateUser", h.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
 
 	var userRequest payload.UserRequest
 	if err := c.ShouldBindJSON(&userRequest); err != nil {

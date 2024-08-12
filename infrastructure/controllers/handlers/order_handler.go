@@ -41,8 +41,8 @@ func NewOrderHandler(p *base.Persistence) *OrderHandler {
 //	@Failure		500				{object}	payload.AppError
 //	@Router			/orders 				[post]
 func (h *OrderHandler) HandleCreateOrder(c *gin.Context) {
-	span := h.p.Logger.Start(c, "handlers/HandleCreateOrder", h.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
+	ctx, _ := h.p.Logger.Start(c, "handlers/HandleCreateOrder")
+	defer h.p.Logger.End()
 
 	var requestPayload payload.CreateOrderRequest
 	if err := c.ShouldBindJSON(&requestPayload); err != nil {
@@ -83,7 +83,7 @@ func (h *OrderHandler) HandleCreateOrder(c *gin.Context) {
 
 	requestPayload.UserID = uint(id)
 	requestPayload.Status = "WAITING_FOR_PAYMENT"
-	if err := h.usecase.CreateOrder(c, &requestPayload); err != nil {
+	if err := h.usecase.CreateOrder(ctx, &requestPayload); err != nil {
 		h.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
 		c.Error(err)
 		return

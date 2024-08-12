@@ -76,4 +76,6 @@ func (z *ZapRepo) convertFields(fields map[string]interface{}) []interface{} {
 	return zapFields
 }
 
-func (z *ZapRepo) Start(c *gin.Context, info string) trace.Span { return nil }
+func (z *ZapRepo) Start(c *gin.Context, info string) (*gin.Context, trace.Span) { return nil, nil }
+
+func (z *ZapRepo) End() { return }

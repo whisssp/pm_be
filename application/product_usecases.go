@@ -38,8 +38,7 @@ func NewProductUsecase(p *base.Persistence) ProductUsecase {
 }
 
 func (p productUsecase) CreateProduct(c *gin.Context, reqPayload *payload.CreateProductRequest) error {
-	span := p.p.Logger.Start(c, "CREATE_PRODUCT: USECASES", p.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
+
 	p.p.Logger.Info("STARTING: CREATE_PRODUCT", map[string]interface{}{"data": reqPayload})
 
 	if err := utils.ValidateReqPayload(reqPayload); err != nil {
@@ -83,8 +82,7 @@ func (p productUsecase) CreateProduct(c *gin.Context, reqPayload *payload.Create
 }
 
 func (p productUsecase) GetAllProducts(c *gin.Context, filter *entity.ProductFilter, pagination *entity.Pagination) ([]entity.Product, error) {
-	span := p.p.Logger.Start(c, "GET_ALL_PRODUCTS: USECASES", p.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
+
 	p.p.Logger.Info("STARTING: GET_ALL_PRODUCTS", map[string]interface{}{"params": struct {
 		Filter     interface{} `json:"filter"`
 		Pagination interface{} `json:"pagination"`
@@ -125,8 +123,7 @@ func (p productUsecase) GetAllProducts(c *gin.Context, filter *entity.ProductFil
 }
 
 func (p productUsecase) GetProductByID(c *gin.Context, id int64) (*entity.Product, error) {
-	span := p.p.Logger.Start(c, "GET_PRODUCT_BY_ID: USECASES", p.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
+
 	p.p.Logger.Info("STARTING: GET_PRODUCT", map[string]interface{}{"data": id})
 
 	var prod entity.Product
@@ -155,8 +152,7 @@ func (p productUsecase) GetProductByID(c *gin.Context, id int64) (*entity.Produc
 }
 
 func (p productUsecase) DeleteProductByID(c *gin.Context, id int64) error {
-	span := p.p.Logger.Start(c, "DELETE_PRODUCT_BY_ID: USECASES", p.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
+
 	p.p.Logger.Info("STARTING: DELETE_PRODUCT", map[string]interface{}{"id": id})
 
 	err := utils.RedisRemoveHashGenericKey(redisHashKey, strconv.FormatInt(int64(id), 10))
@@ -181,8 +177,7 @@ func (p productUsecase) DeleteProductByID(c *gin.Context, id int64) error {
 }
 
 func (p productUsecase) UpdateProductByID(c *gin.Context, id int64, updatePayload *payload.UpdateProductRequest) (*entity.Product, error) {
-	span := p.p.Logger.Start(c, "UPDATE_PRODUCT: USECASES", p.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
+
 	p.p.Logger.Info("STARTING: UPDATE_PRODUCT", map[string]interface{}{"data": struct {
 		ID      interface{}
 		Payload interface{}

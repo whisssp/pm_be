@@ -60,10 +60,10 @@ func InitPersistence(appConfig *config.AppConfig) *Persistence {
 	}
 	persistence.SupabaseStorage = supabaseStorage.StorageClient
 
-	logger, err := logger.NewLogger()
-	if err != nil {
-		fmt.Println("error initializing logger", err)
-	}
+	logger := logger.NewLogger()
+	//if err != nil {
+	//	fmt.Println("error initializing logger", err)
+	//}
 	persistence.Logger = logger
 
 	mailer := mail.NewMailer()

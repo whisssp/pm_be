@@ -41,8 +41,6 @@ func NewProductHandler(p *base.Persistence) *ProductHandler {
 //	@Failure		500						{object}	payload.AppError
 //	@Router			/products 							[post]
 func (handler *ProductHandler) HandleCreateProduct(c *gin.Context) {
-	span := handler.p.Logger.Start(c, "handlers/HandleCreateProduct", handler.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
 
 	var createProdReq payload.CreateProductRequest
 	if err := c.ShouldBindJSON(&createProdReq); err != nil {
@@ -77,8 +75,6 @@ func (handler *ProductHandler) HandleCreateProduct(c *gin.Context) {
 //	@Router			/products 				[get]
 //	@Router			/products/search 				[get]
 func (handler *ProductHandler) HandleGetAllProducts(c *gin.Context) {
-	span := handler.p.Logger.Start(c, "handlers/HandleGetAllProducts", handler.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
 
 	var filter entity.ProductFilter
 	if err := c.ShouldBindQuery(&filter); err != nil {
@@ -120,8 +116,7 @@ func (handler *ProductHandler) HandleGetAllProducts(c *gin.Context) {
 //	@Failure		500				{object}	payload.AppError
 //	@Router			/products/:id 				[get]
 func (handler *ProductHandler) HandleGetProductByID(c *gin.Context) {
-	span := handler.p.Logger.Start(c, "handlers/HandleGetProductByID", handler.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
+
 	id, _ := strconv.ParseInt(removeSlashFromParam(c.Param("id")), 10, 64)
 	if id == 0 {
 		err := fmt.Errorf("[id] parameter is required")
@@ -156,8 +151,6 @@ func (handler *ProductHandler) HandleGetProductByID(c *gin.Context) {
 //	@Failure		500				{object}	payload.AppError
 //	@Router			/products/:id 				[delete]
 func (handler *ProductHandler) HandleDeleteProductByID(c *gin.Context) {
-	span := handler.p.Logger.Start(c, "handlers/HandleDeleteProductByID", handler.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
 
 	id, _ := strconv.ParseInt(removeSlashFromParam(c.Param("id")), 10, 64)
 	if id == 0 {
@@ -192,8 +185,6 @@ func (handler *ProductHandler) HandleDeleteProductByID(c *gin.Context) {
 //	@Failure		500				{object}	payload.AppError
 //	@Router			/products/:id 				[put]
 func (handler *ProductHandler) HandleUpdateProductByID(c *gin.Context) {
-	span := handler.p.Logger.Start(c, "handlers/HandleUpdateProductByID", handler.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
 
 	id, _ := strconv.ParseInt(removeSlashFromParam(c.Param("id")), 10, 64)
 	if id == 0 {

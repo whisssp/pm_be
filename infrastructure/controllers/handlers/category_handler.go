@@ -37,8 +37,6 @@ func NewCategoryHandler(p *base.Persistence) *CategoryHandler {
 //	@Failure		500						{object}	payload.AppError
 //	@Router			/categories 							[post]
 func (h CategoryHandler) HandleCreateCategory(c *gin.Context) {
-	span := h.p.Logger.Start(c, "handlers/HandleCreateCategory", h.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
 
 	var categoryReq payload.CreateCategoryRequest
 	if err := c.ShouldBindJSON(&categoryReq); err != nil {
@@ -71,8 +69,6 @@ func (h CategoryHandler) HandleCreateCategory(c *gin.Context) {
 //	@Failure		500			{object}	payload.AppError
 //	@Router			/categories 				[get]
 func (h CategoryHandler) HandleGetAllCategories(c *gin.Context) {
-	span := h.p.Logger.Start(c, "handlers/GetAllCategories", h.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
 
 	var categoryFilter entity.CategoryFilter
 	var pagination entity.Pagination
@@ -114,8 +110,7 @@ func (h CategoryHandler) HandleGetAllCategories(c *gin.Context) {
 //	@Failure		500				{object}	payload.AppError
 //	@Router			/categories/:id 				[get]
 func (h CategoryHandler) HandleGetCategoryByID(c *gin.Context) {
-	span := h.p.Logger.Start(c, "handlers/HandleGetCategoryByID", h.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
+
 	h.p.Logger.Info("GET_CATEGORY", map[string]interface{}{})
 
 	id, _ := strconv.ParseInt(removeSlashFromParam(c.Param("id")), 10, 64)
@@ -148,8 +143,7 @@ func (h CategoryHandler) HandleGetCategoryByID(c *gin.Context) {
 //	@Failure		500				{object}	payload.AppError
 //	@Router			/categories/:id 				[delete]
 func (h CategoryHandler) HandleDeleteCategoryByID(c *gin.Context) {
-	span := h.p.Logger.Start(c, "handlers/HandleDeleteCategoryByID", h.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
+
 	h.p.Logger.Info("DELETE_CATEGORY", map[string]interface{}{})
 
 	id, _ := strconv.ParseInt(removeSlashFromParam(c.Param("id")), 10, 64)
@@ -183,9 +177,7 @@ func (h CategoryHandler) HandleDeleteCategoryByID(c *gin.Context) {
 //	@Failure		500				{object}	payload.AppError
 //	@Router			/categories/:id 				[put]
 func (h CategoryHandler) HandleUpdateCategoryByID(c *gin.Context) {
-	span := h.p.Logger.Start(c, "handlers/HandleUpdateCategoryByID", h.p.Logger.SetContextWithSpanFunc())
-	defer span.End()
-
+	
 	var updatePayload payload.UpdateCategoryRequest
 	id, _ := strconv.ParseInt(removeSlashFromParam(c.Param("id")), 10, 64)
 	if id == 0 {

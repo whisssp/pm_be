@@ -23,8 +23,8 @@ const (
 
 func AuthMiddleware(p *base.Persistence, roles ...int64) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		span := p.Logger.Start(c, "AUTH_MIDDLEWARE", p.Logger.SetContextWithSpanFunc())
-		defer span.End()
+		ctx, _ := p.Logger.Start(c, "AUTH_MIDDLEWARE")
+		defer p.Logger.End()
 		p.Logger.Info("AUTH_MIDDLEWARE", map[string]interface{}{})
 
 		bearerToken := c.GetHeader(authorizationHeader)
@@ -55,7 +55,7 @@ func AuthMiddleware(p *base.Persistence, roles ...int64) gin.HandlerFunc {
 			return
 		}
 		idInt, _ := strconv.ParseInt(id.(string), 10, 64)
-		user, err := users.NewUserRepository(c, p, p.GormDB).GetUserByID(span, idInt)
+		user, err := users.NewUserRepository(ctx, p, p.GormDB).GetUserByID(idInt)
 		if err != nil {
 			errU := payload.NewUnauthorized(errors.New("unauthorized"), "Not found the user from token", "ErrInvalidClaims")
 			p.Logger.Error("AUTHENTICATION_FAILED", map[string]interface{}{"error": errU.Error()})

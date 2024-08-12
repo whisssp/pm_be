@@ -18,8 +18,8 @@ type UserRoleRepository struct {
 
 func (u UserRoleRepository) GetUserRoleByID(i int64) (*entity.UserRole, error) {
 	//u.p.Logger.SetContextWithSpan(span)
-	span := u.p.Logger.Start(u.c, "GET_USER_ROLE_BY_ID: DATABASE")
-	defer span.End()
+	_, _ = u.p.Logger.Start(u.c, "GET_USER_ROLE_BY_ID: DATABASE")
+	defer u.p.Logger.End()
 	u.p.Logger.Info("STARTING: GET USER ROLE BY ID", map[string]interface{}{"id": i})
 	var userRole entity.UserRole
 	if err := u.db.Debug().Model(&entity.UserRole{}).Where("id = ?", i).First(&userRole).Error; err != nil {
@@ -34,8 +34,7 @@ func (u UserRoleRepository) GetUserRoleByID(i int64) (*entity.UserRole, error) {
 }
 
 func (u UserRoleRepository) GetUserRoleByName(s string) (*entity.UserRole, error) {
-	span := u.p.Logger.Start(u.c, "GET_USER_ROLE_BY_NAME: DATABASE")
-	defer span.End()
+
 	u.p.Logger.Info("STARTING: GET USER ROLE BY NAME", map[string]interface{}{"role_name": s})
 
 	var userRole entity.UserRole

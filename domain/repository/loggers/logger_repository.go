@@ -11,5 +11,6 @@ type LoggerRepository interface {
 	Warn(msg string, fields map[string]interface{})
 	Error(msg string, fields map[string]interface{})
 	Fatal(msg string, fields map[string]interface{})
-	Start(c *gin.Context, info string) trace.Span
+	Start(c *gin.Context, info string) (*gin.Context, trace.Span)
+	End()
 }
