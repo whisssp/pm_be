@@ -9,6 +9,7 @@ import (
 	"pm/domain/repository/orders"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/persistences/base"
+	"pm/infrastructure/persistences/base/logger"
 )
 
 type OrderRepository struct {
@@ -47,19 +48,25 @@ func (o OrderRepository) IsAvailableStockByOrderItems(persistence *base.Persiste
 	return ps, nil
 }
 
-func (o OrderRepository) Create(order *entity.Order) error {
-
+func (o OrderRepository) Create(ctx *gin.Context, order *entity.Order) error {
+	newlogger := logger.NewLogger()
+	_, _ = newlogger.Start(ctx, "create ode repository")
+	defer newlogger.End()
 	tx := o.db.Begin()
 
+	newlogger.Info("Starting: create order repository", map[string]interface{}{"order": order})
 	if err := tx.Create(&order).Error; err != nil {
+		newlogger.Error("create order repository: error", map[string]interface{}{"error": err.Error()})
 		tx.Rollback()
 		return payload.ErrDB(err)
 	}
 
 	if err := tx.Commit().Error; err != nil {
+		newlogger.Error("create order repository: error commit transaction", map[string]interface{}{"error": err.Error()})
 		return payload.ErrDB(err)
 	}
 
+	newlogger.Info("create order repository: successfully", map[string]interface{}{"order": order})
 	return nil
 }
 

@@ -1,7 +1,7 @@
 package products
 
 import (
-	"go.opentelemetry.io/otel/trace"
+	"github.com/gin-gonic/gin"
 	"pm/domain/entity"
 )
 
@@ -13,5 +13,5 @@ type ProductRepository interface {
 	DeleteProduct(*entity.Product) error
 	GetProductByOrderItem(...entity.OrderItem) ([]entity.Product, error)
 	UpdateMultiProduct(...entity.Product) ([]entity.Product, error)
-	IsAvailableStockByOrderItems(trace.Span, ...entity.OrderItem) ([]entity.Product, error)
+	IsAvailableStockByOrderItems(*gin.Context, ...entity.OrderItem) ([]entity.Product, error)
 }

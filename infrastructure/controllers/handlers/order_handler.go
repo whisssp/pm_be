@@ -10,6 +10,7 @@ import (
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/mapper"
 	"pm/infrastructure/persistences/base"
+	"pm/infrastructure/persistences/base/logger"
 	"pm/utils"
 	"strconv"
 )
@@ -41,12 +42,13 @@ func NewOrderHandler(p *base.Persistence) *OrderHandler {
 //	@Failure		500				{object}	payload.AppError
 //	@Router			/orders 				[post]
 func (h *OrderHandler) HandleCreateOrder(c *gin.Context) {
-	ctx, _ := h.p.Logger.Start(c, "handlers/HandleCreateOrder")
-	defer h.p.Logger.End()
+	newlogger := logger.NewLogger()
+	ctx, _ := newlogger.Start(c, "handlers/HandleCreateOrder")
+	defer newlogger.End()
 
 	var requestPayload payload.CreateOrderRequest
 	if err := c.ShouldBindJSON(&requestPayload); err != nil {
-		h.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"data": err.Error()})
+		newlogger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"data": err.Error()})
 		c.Error(err)
 		return
 	}
@@ -71,12 +73,12 @@ func (h *OrderHandler) HandleCreateOrder(c *gin.Context) {
 	case string:
 		id, err = strconv.ParseInt(v, 10, 64)
 		if err != nil {
-			h.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
+			newlogger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
 			c.Error(payload.ErrInternal(fmt.Errorf("error cast from any to int64")))
 			return
 		}
 	default:
-		h.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
+		newlogger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
 		c.Error(payload.ErrInternal(fmt.Errorf("error cast from any to int64")))
 		return
 	}
@@ -84,12 +86,12 @@ func (h *OrderHandler) HandleCreateOrder(c *gin.Context) {
 	requestPayload.UserID = uint(id)
 	requestPayload.Status = "WAITING_FOR_PAYMENT"
 	if err := h.usecase.CreateOrder(ctx, &requestPayload); err != nil {
-		h.p.Logger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
+		newlogger.Error("CREATE_ORDER_FAILED", map[string]interface{}{"message": err.Error()})
 		c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, payload.SuccessResponse(nil, ""))
-	h.p.Logger.Info("CREATE_ORDER_SUCCESSFULLY", map[string]interface{}{})
+	newlogger.Info("CREATE_ORDER_SUCCESSFULLY", map[string]interface{}{})
 }
 
 func (h *OrderHandler) HandleUpdateOrderByID(c *gin.Context) {

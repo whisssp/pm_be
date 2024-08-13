@@ -12,6 +12,7 @@ import (
 	"pm/infrastructure/jobs"
 	"pm/infrastructure/mapper"
 	"pm/infrastructure/persistences/base"
+	"pm/infrastructure/persistences/base/logger"
 	"pm/utils"
 	"strconv"
 )
@@ -35,9 +36,10 @@ func NewOrderUsecase(p *base.Persistence) OrderUsecase {
 }
 
 func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrderRequest) error {
-	ctx, span := o.p.Logger.Start(c, "CREATE_ORDER: USECASES")
-	defer span.End()
-	o.p.Logger.Info("STARTING: CREATE_ORDER", map[string]interface{}{"data": reqPayload})
+	newLogger := logger.NewLogger()
+	ctx, _ := newLogger.Start(c, "CREATE_ORDER: USECASES")
+	defer newLogger.End()
+	newLogger.Info("STARTING: CREATE_ORDER", map[string]interface{}{"data": reqPayload})
 
 	order := mapper.CreateOrderPayloadToOrder(reqPayload)
 	prods := make([]entity.Product, 0)
@@ -65,19 +67,19 @@ func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrde
 	}
 
 	if len(prods) == 0 {
-		prods, err = productRepo.IsAvailableStockByOrderItems(span, order.OrderItems...)
+		prods, err = productRepo.IsAvailableStockByOrderItems(ctx, order.OrderItems...)
 		if err != nil {
-			o.p.Logger.Error("CREATE_ORDER: ERROR PRODUCT IS NOT AVAILABLE", map[string]interface{}{"error": err.Error()})
+			newLogger.Error("CREATE_ORDER: ERROR PRODUCT IS NOT AVAILABLE", map[string]interface{}{"error": err.Error()})
 			return err
 		}
 	}
 
-	o.p.Logger.Info("CREATE_ORDER", map[string]interface{}{"order": order})
-	if err := orderRepo.Create(&order); err != nil {
-		o.p.Logger.Error("CREATE_ORDER: ERROR", map[string]interface{}{"error": err.Error()})
+	newLogger.Info("CREATE_ORDER", map[string]interface{}{"order": order})
+	if err := orderRepo.Create(ctx, &order); err != nil {
+		newLogger.Error("CREATE_ORDER: ERROR", map[string]interface{}{"error": err.Error()})
 		return err
 	}
-	o.p.Logger.Info("CREATE_ORDER: SUCCESSFULLY", map[string]interface{}{"order": order})
+	newLogger.Info("CREATE_ORDER: SUCCESSFULLY", map[string]interface{}{"order": order})
 
 	// this goroutine is for updating product on redis
 	go func() {

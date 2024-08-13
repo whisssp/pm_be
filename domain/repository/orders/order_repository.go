@@ -7,7 +7,7 @@ import (
 )
 
 type OrderRepository interface {
-	Create(*entity.Order) error
+	Create(*gin.Context, *entity.Order) error
 	Update(*entity.Order) (*entity.Order, error)
 	GetOrderByID(id int64) (*entity.Order, error)
 	GetAllOrders(pagination *entity.Pagination) ([]entity.Order, error)

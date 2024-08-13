@@ -4,13 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"go.opentelemetry.io/otel/trace"
 	"gorm.io/gorm"
 	"math"
 	"pm/domain/entity"
 	"pm/domain/repository/products"
 	"pm/infrastructure/controllers/payload"
 	"pm/infrastructure/persistences/base"
+	"pm/infrastructure/persistences/base/logger"
 )
 
 const (
@@ -139,16 +139,17 @@ func (prodRepo *ProductRepository) GetProductByOrderItem(orderItems ...entity.Or
 // Param: array OrderItem
 // return: ([]Product, nil) when all the product in order is available, (nil, error) when one of products is not available
 */
-func (prodRepo *ProductRepository) IsAvailableStockByOrderItems(parentSpan trace.Span, orderItems ...entity.OrderItem) ([]entity.Product, error) {
-	_, _ = prodRepo.p.Logger.Start(prodRepo.c, "CHECK_STOCK")
-	defer prodRepo.p.Logger.End()
-	prodRepo.p.Logger.Info("CHECK_STOCK", map[string]interface{}{"data": orderItems})
+func (prodRepo *ProductRepository) IsAvailableStockByOrderItems(c *gin.Context, orderItems ...entity.OrderItem) ([]entity.Product, error) {
+	newLogger := logger.NewLogger()
+	_, _ = newLogger.Start(c, "CHECK_STOCK")
+	defer newLogger.End()
+	newLogger.Info("CHECK_STOCK", map[string]interface{}{"data": orderItems})
 
 	ps := make([]entity.Product, 0)
 	for _, o := range orderItems {
 		var p entity.Product
 		if err := prodRepo.p.GormDB.Model(&entity.Product{}).Where("id = ?", o.ProductID).First(&p).Error; err != nil {
-			prodRepo.p.Logger.Error("CHECK_STOCK_FAILED", map[string]interface{}{"message": err.Error()})
+			newLogger.Error("CHECK_STOCK_FAILED", map[string]interface{}{"message": err.Error()})
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, payload.ErrEntityNotFound("products", err)
 			}
@@ -156,13 +157,13 @@ func (prodRepo *ProductRepository) IsAvailableStockByOrderItems(parentSpan trace
 		}
 		if p.Stock-int64(o.Quantity) < 0 {
 			err := fmt.Errorf("the product %v is out of stock", o.ProductID)
-			prodRepo.p.Logger.Error("CHECK_STOCK_FAILED", map[string]interface{}{"message": err.Error()})
+			newLogger.Error("CHECK_STOCK_FAILED", map[string]interface{}{"message": err.Error()})
 			return nil, payload.ErrInvalidRequest(err)
 		}
 		ps = append(ps, p)
 	}
 
-	prodRepo.p.Logger.Info("CHECK_STOCK_SUCCESSFULLY", map[string]interface{}{"products": ps})
+	newLogger.Info("CHECK_STOCK_SUCCESSFULLY", map[string]interface{}{"products": ps})
 	return ps, nil
 }
 
