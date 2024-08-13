@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"go.opentelemetry.io/otel/trace"
 	"pm/domain/entity"
 	"pm/infrastructure/config"
 	"pm/infrastructure/controllers/payload"
@@ -33,9 +32,8 @@ func InitJwtHelper(p *base.Persistence, jwtConfig config.JwtConfig) {
 	persistence = p
 }
 
-func JwtGenerateJwtToken(c *gin.Context, p *base.Persistence, user *entity.User, parentSpan trace.Span) (string, error) {
-	newlogger := logger.NewLogger()
-	ctx1, _ := newlogger.Start(c, "GENERATE_TOKEN_JWT")
+func JwtGenerateJwtToken(c *gin.Context, p *base.Persistence, user *entity.User) (string, error) {
+	ctx1, newlogger := logger.GetLogger().Start(c, "GENERATE_TOKEN_JWT")
 	defer newlogger.End()
 	newlogger.Info("STARTING_GENERATE_TOKEN", map[string]interface{}{"data": user})
 

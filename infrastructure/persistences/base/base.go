@@ -9,7 +9,6 @@ import (
 	"pm/infrastructure/config"
 	"pm/infrastructure/implementations/loggers"
 	db2 "pm/infrastructure/persistences/base/db"
-	"pm/infrastructure/persistences/base/logger"
 	"pm/infrastructure/persistences/base/mail"
 	rd2 "pm/infrastructure/persistences/base/redis"
 	"pm/infrastructure/persistences/base/supabase"
@@ -60,11 +59,11 @@ func InitPersistence(appConfig *config.AppConfig) *Persistence {
 	}
 	persistence.SupabaseStorage = supabaseStorage.StorageClient
 
-	logger := logger.NewLogger()
+	//logger := logger.NewLogger()
 	//if err != nil {
 	//	fmt.Println("error initializing logger", err)
 	//}
-	persistence.Logger = logger
+	//persistence.Logger = logger
 
 	mailer := mail.NewMailer()
 	persistence.Mailer = mailer

@@ -3,6 +3,7 @@ package main
 import (
 	"pm/infrastructure/config"
 	"pm/infrastructure/persistences/base"
+	"pm/infrastructure/persistences/base/logger"
 	"pm/infrastructure/routes"
 )
 
@@ -12,7 +13,7 @@ import (
 func main() {
 
 	persistence := base.InitPersistence(config.Configs)
-
+	logger.NewLogger()
 	server := routes.InitServer(config.Configs.Server.Port, persistence)
 	server.Run()
 }

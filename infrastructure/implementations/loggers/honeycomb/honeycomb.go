@@ -9,6 +9,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"os"
+	"pm/domain/repository/loggers"
 	"runtime"
 )
 
@@ -22,7 +23,7 @@ func NewHoneycombRepository() *HoneycombRepository {
 }
 
 // Start Honeycomb
-func (h *HoneycombRepository) Start(c *gin.Context, info string) (*gin.Context, trace.Span) {
+func (h *HoneycombRepository) Start(c *gin.Context, info string) (*gin.Context, *loggers.LoggerRepository) {
 	_, file, line, _ := runtime.Caller(2)
 
 	tracer := otel.Tracer("")
@@ -35,7 +36,7 @@ func (h *HoneycombRepository) Start(c *gin.Context, info string) (*gin.Context, 
 	temp := c.Copy()
 	temp.Request = c.Request.WithContext(ctx)
 	h.c = temp
-	return temp, span
+	return temp, nil
 }
 
 func (h *HoneycombRepository) End() {

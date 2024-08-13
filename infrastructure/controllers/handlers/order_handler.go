@@ -42,8 +42,7 @@ func NewOrderHandler(p *base.Persistence) *OrderHandler {
 //	@Failure		500				{object}	payload.AppError
 //	@Router			/orders 				[post]
 func (h *OrderHandler) HandleCreateOrder(c *gin.Context) {
-	newlogger := logger.NewLogger()
-	ctx, _ := newlogger.Start(c, "handlers/HandleCreateOrder")
+	ctx, newlogger := logger.GetLogger().Start(c, "handlers/HandleCreateOrder")
 	defer newlogger.End()
 
 	var requestPayload payload.CreateOrderRequest

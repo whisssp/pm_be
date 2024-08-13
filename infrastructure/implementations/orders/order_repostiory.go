@@ -49,8 +49,7 @@ func (o OrderRepository) IsAvailableStockByOrderItems(persistence *base.Persiste
 }
 
 func (o OrderRepository) Create(ctx *gin.Context, order *entity.Order) error {
-	newlogger := logger.NewLogger()
-	_, _ = newlogger.Start(ctx, "create ode repository")
+	_, newlogger := logger.GetLogger().Start(ctx, "create ode repository")
 	defer newlogger.End()
 	tx := o.db.Begin()
 

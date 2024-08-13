@@ -36,8 +36,7 @@ func NewOrderUsecase(p *base.Persistence) OrderUsecase {
 }
 
 func (o orderUsecase) CreateOrder(c *gin.Context, reqPayload *payload.CreateOrderRequest) error {
-	newLogger := logger.NewLogger()
-	ctx, _ := newLogger.Start(c, "CREATE_ORDER: USECASES")
+	ctx, newLogger := logger.GetLogger().Start(c, "CREATE_ORDER: USECASES")
 	defer newLogger.End()
 	newLogger.Info("STARTING: CREATE_ORDER", map[string]interface{}{"data": reqPayload})
 

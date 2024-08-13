@@ -31,8 +31,7 @@ func NewUserHandler(p *base.Persistence) *UserHandler {
 // @Failure 			500 	{object} payload.AppError
 // @Router				/users/authenticate [post]
 func (h *UserHandler) HandleAuthenticate(c *gin.Context) {
-	newlogger := logger.NewLogger()
-	ctx, _ := newlogger.Start(c, "handlers/HandleAuthenticate")
+	ctx, newlogger := logger.GetLogger().Start(c, "handlers/HandleAuthenticate")
 	defer newlogger.End()
 
 	var loginRequest payload.LoginRequest

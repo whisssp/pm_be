@@ -30,8 +30,7 @@ func NewUserUsecase(p *base.Persistence) UserUsecase {
 }
 
 func (u userUsecase) Authenticate(c *gin.Context, request *payload.LoginRequest) (string, error) {
-	newlogger := logger.NewLogger()
-	ctx, span := newlogger.Start(c, "AUTHENTICATE_USECASES")
+	ctx, newlogger := logger.GetLogger().Start(c, "AUTHENTICATE_USECASES")
 	defer newlogger.End()
 	newlogger.Info("STARTING: AUTHENTICATE", map[string]interface{}{"data": request})
 
@@ -54,7 +53,7 @@ func (u userUsecase) Authenticate(c *gin.Context, request *payload.LoginRequest)
 		return "", payload.ErrWrongPassword(errors.New("incorrect email or password"))
 	}
 
-	token, err := utils.JwtGenerateJwtToken(ctx, u.p, user, span)
+	token, err := utils.JwtGenerateJwtToken(ctx, u.p, user)
 	if err != nil {
 		newlogger.Error("AUTHENTICATE: GENERATE TOKEN FAILED", map[string]interface{}{"error": err.Error()})
 		return "", err

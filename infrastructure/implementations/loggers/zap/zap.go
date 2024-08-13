@@ -2,9 +2,9 @@ package zap
 
 import (
 	"github.com/gin-gonic/gin"
-	"go.opentelemetry.io/otel/trace"
 	zap "go.uber.org/zap"
 	"os"
+	"pm/domain/repository/loggers"
 )
 
 type ZapRepo struct {
@@ -76,6 +76,8 @@ func (z *ZapRepo) convertFields(fields map[string]interface{}) []interface{} {
 	return zapFields
 }
 
-func (z *ZapRepo) Start(c *gin.Context, info string) (*gin.Context, trace.Span) { return nil, nil }
+func (z *ZapRepo) Start(c *gin.Context, info string) (*gin.Context, *loggers.LoggerRepository) {
+	return nil, nil
+}
 
 func (z *ZapRepo) End() { return }

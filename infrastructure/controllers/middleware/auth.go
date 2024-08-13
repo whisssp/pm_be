@@ -24,8 +24,7 @@ const (
 
 func AuthMiddleware(p *base.Persistence, roles ...int64) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		newlogger := logger.NewLogger()
-		ctx, _ := newlogger.Start(c, "AUTH_MIDDLEWARE")
+		ctx, newlogger := logger.GetLogger().Start(c, "AUTH_MIDDLEWARE")
 		defer newlogger.End()
 		newlogger.Info("AUTH_MIDDLEWARE", map[string]interface{}{})
 

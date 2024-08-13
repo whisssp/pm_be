@@ -28,8 +28,7 @@ func NewUserRepository(c *gin.Context, p *base.Persistence, db *gorm.DB) users.U
 }
 
 func (u UserRepository) GetUserByEmail(email string) (*entity.User, error) {
-	newlogger := logger.NewLogger()
-	_, span := newlogger.Start(u.c, "GET_USER_BY_EMAIL: DATABASE")
+	_, newlogger := logger.GetLogger().Start(u.c, "GET_USER_BY_EMAIL: DATABASE")
 
 	defer newlogger.End()
 	newlogger.Info("STARTING: GET USER BY EMAIL", map[string]interface{}{"email": email})
@@ -45,7 +44,7 @@ func (u UserRepository) GetUserByEmail(email string) (*entity.User, error) {
 		return nil, payload.ErrDB(err)
 	}
 	newlogger.Info("GET_USER_BY_EMAIL: SUCCESSFULLY", map[string]interface{}{"user": user})
-	fmt.Println("SPAN-REPO", span)
+	fmt.Println("SPAN-REPO")
 	return &user, nil
 }
 
@@ -77,21 +76,21 @@ func (u UserRepository) GetAllUsers() ([]entity.User, error) {
 }
 
 func (u UserRepository) GetUserByID(id int64) (*entity.User, error) {
-	_, _ = u.p.Logger.Start(u.c, "GET_USER_BY_ID: DATABASE")
-	defer u.p.Logger.End()
-	u.p.Logger.Info("STARTING: GET USER BY ID", map[string]interface{}{"id": id})
+	_, newlogger := logger.GetLogger().Start(u.c, "GET_USER_BY_ID: DATABASE")
+	defer newlogger.End()
+	newlogger.Info("STARTING: GET USER BY ID", map[string]interface{}{"id": id})
 
 	db := u.db
 	var user entity.User
 	if err := db.Where("id = ?", id).Find(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			u.p.Logger.Info("GET_USER_BY_ID: USER ID DOESN'T EXISTS", map[string]interface{}{"error": err.Error()})
+			newlogger.Info("GET_USER_BY_ID: USER ID DOESN'T EXISTS", map[string]interface{}{"error": err.Error()})
 			return nil, payload.ErrEntityNotFound("users", err)
 		}
-		u.p.Logger.Info("GET_USER_BY_ID: ERROR", map[string]interface{}{"error": err.Error()})
+		newlogger.Info("GET_USER_BY_ID: ERROR", map[string]interface{}{"error": err.Error()})
 		return nil, payload.ErrDB(err)
 	}
-	u.p.Logger.Info("GET_USER_BY_ID_SUCCESSFULLY", map[string]interface{}{"user": user})
+	newlogger.Info("GET_USER_BY_ID_SUCCESSFULLY", map[string]interface{}{"user": user})
 	return &user, nil
 }
 
